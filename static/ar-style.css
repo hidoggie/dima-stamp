@@ -1,0 +1,731 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--dark);
+  font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Apple SD Gothic Neo",
+    "Noto Sans KR", sans-serif;
+  color: #fff;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ar-screen {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+.ar-screen.active { display: flex; }
+
+/* ---------- pose -> image transition overlay ---------- */
+#step-transition {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 380ms ease;
+  background: #000;
+}
+#step-transition.visible { opacity: 1; pointer-events: auto; }
+#transition-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(18px) brightness(0.55);
+  transform: scale(1.08); /* hide blur edge artifacts */
+}
+.transition-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 14, 20, 0.45);
+}
+.transition-content {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  text-align: center;
+  padding: 24px;
+}
+.spinner {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  border: 3px solid rgba(255,255,255,0.25);
+  border-top-color: var(--purple);
+  animation: spin 800ms linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.transition-label { font-size: 16px; font-weight: 700; }
+.transition-sub { font-size: 13px; color: #cfcbe0; }
+
+/* ---------- shared card / intro / result ---------- */
+.card {
+  width: 100%;
+  max-width: 460px;
+  height: 100%;
+  padding: 32px 24px;
+  overflow-y: auto;
+  background: linear-gradient(180deg, #241f33 0%, var(--dark) 60%);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.badge {
+  align-self: flex-start;
+  background: rgba(139, 92, 246, 0.18);
+  color: var(--purple);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  padding: 5px 10px;
+  border-radius: 999px;
+  margin-bottom: 14px;
+}
+
+h1 { font-size: 26px; margin: 0 0 8px; line-height: 1.3; }
+.sub { color: #b8b5c4; font-size: 14px; line-height: 1.6; margin: 0 0 22px; }
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  background: rgba(255,255,255,0.05);
+  padding: 6px;
+  border-radius: 14px;
+}
+.tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 6px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: #9a97a8;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.tab.active { background: var(--purple); color: #fff; }
+.tab-icon { width: 28px; height: 28px; display: block; }
+.tab-icon::before { content: ""; display: block; width: 100%; height: 100%;
+  background-repeat: no-repeat; background-position: center; background-size: contain; }
+.tab-icon[data-icon="thumbs_up"]::before {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' fill='none' stroke='white' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'><path d='M20 28h-8a4 4 0 0 0-4 4v18a4 4 0 0 0 4 4h8'/><path d='M20 28l10-18a5 5 0 0 1 9 4l-3 12h13a6 6 0 0 1 6 7l-4 15a7 7 0 0 1-7 5H20'/></svg>");
+}
+.tab-icon[data-icon="victory"]::before {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' fill='none' stroke='white' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'><path d='M24 30V10a4 4 0 0 1 8 0v16'/><path d='M32 26V8a4 4 0 0 1 8 0v18'/><path d='M18 34l-2-8a4 4 0 0 1 7.7-2.1'/><path d='M18 34v10a12 12 0 0 0 12 12h6a12 12 0 0 0 12-12V30a4 4 0 0 0-8-1'/></svg>");
+}
+
+.steps { margin: 0 0 26px; padding-left: 18px; color: #d7d5e0; font-size: 13.5px; line-height: 1.9; }
+.steps b { color: var(--purple); margin-right: 4px; }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 15px 20px;
+  border-radius: 14px;
+  border: none;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.btn-primary { background: var(--purple); color: #fff; }
+.btn-primary:active { background: var(--purple-dark); }
+.btn-secondary { background: rgba(255,255,255,0.1); color: #fff; }
+.btn-ghost { background: rgba(0,0,0,0.35); color: #fff; border: 1px solid rgba(255,255,255,0.25); }
+
+.hint { text-align: center; color: #6f6c7d; font-size: 12px; margin-top: 12px; }
+
+/* ---------- camera screens ---------- */
+#screen-pose, #screen-image { background: #000; }
+
+#pose-video {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+}
+
+.guide-icon-wrap {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+  pointer-events: none;
+}
+.guide-icon {
+  width: 46vw;
+  height: 46vw;
+  max-width: 220px;
+  max-height: 220px;
+  opacity: 0.55;
+  filter: drop-shadow(0 0 10px rgba(0,0,0,0.6));
+  transition: opacity 150ms linear, filter 150ms linear;
+  display: block;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+.guide-icon[data-icon="thumbs_up"] {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><path d='M20 28h-8a4 4 0 0 0-4 4v18a4 4 0 0 0 4 4h8'/><path d='M20 28l10-18a5 5 0 0 1 9 4l-3 12h13a6 6 0 0 1 6 7l-4 15a7 7 0 0 1-7 5H20'/></svg>");
+}
+.guide-icon[data-icon="victory"] {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><path d='M24 30V10a4 4 0 0 1 8 0v16'/><path d='M32 26V8a4 4 0 0 1 8 0v18'/><path d='M18 34l-2-8a4 4 0 0 1 7.7-2.1'/><path d='M18 34v10a12 12 0 0 0 12 12h6a12 12 0 0 0 12-12V30a4 4 0 0 0-8-1'/></svg>");
+}
+.guide-icon.matched {
+  opacity: 1;
+  filter: drop-shadow(0 0 16px rgba(34,197,94,0.9));
+}
+.guide-icon.matched[data-icon="thumbs_up"] {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' fill='none' stroke='%2322c55e' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'><path d='M20 28h-8a4 4 0 0 0-4 4v18a4 4 0 0 0 4 4h8'/><path d='M20 28l10-18a5 5 0 0 1 9 4l-3 12h13a6 6 0 0 1 6 7l-4 15a7 7 0 0 1-7 5H20'/></svg>");
+}
+.guide-icon.matched[data-icon="victory"] {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' fill='none' stroke='%2322c55e' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'><path d='M24 30V10a4 4 0 0 1 8 0v16'/><path d='M32 26V8a4 4 0 0 1 8 0v18'/><path d='M18 34l-2-8a4 4 0 0 1 7.7-2.1'/><path d='M18 34v10a12 12 0 0 0 12 12h6a12 12 0 0 0 12-12V30a4 4 0 0 0-8-1'/></svg>");
+}
+
+#ar-mount { position: absolute; inset: 0; }
+#ar-mount a-scene { width: 100%; height: 100%; }
+
+.hud-top {
+  position: absolute; top: 0; left: 0; right: 0;
+  /* extra right padding reserves room for the round flip-camera button
+     (42px wide + 16px offset) so it never overlaps the banner text */
+  padding: max(18px, env(safe-area-inset-top)) 70px 16px 16px;
+  display: flex; justify-content: center;
+  background: linear-gradient(180deg, rgba(0,0,0,0.65), transparent);
+  z-index: 5;
+}
+.hud-banner {
+  background: rgba(20,18,28,0.85);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 14px;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13.5px;
+  font-weight: 600;
+  max-width: 100%;
+  min-width: 0;
+}
+.hud-banner span:last-child {
+  white-space: normal;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  min-width: 0;
+}
+.badge-inline {
+  background: var(--purple);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 3px 7px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.hud-flip {
+  position: absolute;
+  top: max(18px, env(safe-area-inset-top));
+  right: 16px;
+  z-index: 6;
+}
+.icon-btn {
+  width: 42px; height: 42px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(20,18,28,0.75);
+  color: #fff;
+  font-size: 20px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+
+.hud-bottom {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  padding: 16px 20px max(20px, env(safe-area-inset-bottom));
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  background: linear-gradient(0deg, rgba(0,0,0,0.7), transparent);
+  z-index: 5;
+}
+
+.progress-ring-wrap { position: relative; width: 96px; height: 96px; }
+.progress-ring { width: 100%; height: 100%; transform: rotate(-90deg); }
+.progress-ring-bg { fill: rgba(255,255,255,0.08); stroke: rgba(255,255,255,0.18); stroke-width: 6; }
+.progress-ring-fg {
+  fill: none;
+  stroke: var(--green);
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-dasharray: 327;
+  stroke-dashoffset: 327;
+  transition: stroke-dashoffset 80ms linear;
+}
+.progress-ring-label {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 6px;
+  line-height: 1.3;
+}
+
+.timer-wrap { width: 100%; max-width: 420px; text-align: center; }
+.timer-bar-track { width: 100%; height: 6px; border-radius: 4px; background: rgba(255,255,255,0.15); overflow: hidden; margin-bottom: 8px; }
+.timer-bar-fill { height: 100%; width: 100%; background: var(--purple); transition: width 200ms linear; }
+#image-status-label { font-size: 13px; color: #cfcbe0; margin-bottom: 12px; }
+
+/* ---------- result screen ---------- */
+.result-icon {
+  width: 74px; height: 74px;
+  border-radius: 50%;
+  margin: 4px auto 18px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 36px;
+}
+.result-icon.success { background: rgba(34,197,94,0.18); color: var(--green); }
+.result-icon.fail { background: rgba(239,68,68,0.18); color: var(--red); }
+
+#screen-result .card { align-items: center; text-align: center; }
+
+.snapshot-wrap {
+  width: 100%;
+  margin-bottom: 22px;
+}
+.snapshot {
+  /* one seamless composed photo (pose + image-recognition frames drawn
+     edge-to-edge with no gap in app.js) — not two separate cropped tiles.
+     Aspect ratio matches the compose-canvas output (1080 x 790, see
+     composeResultPhoto() in app.js) so the frame doesn't letterbox it. */
+  display: block;
+  width: 100%;
+  aspect-ratio: 1080/790;
+  object-fit: contain;
+  border-radius: 14px;
+  background: #100f16;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.result-actions { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+
+/* pulse used when a pose / image is confirmed */
+@keyframes pop {
+  0% { transform: scale(0.85); opacity: 0; }
+  60% { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.pop-in { animation: pop 260ms ease-out; }
+
+
+/* ============================================================
+   CROSS-DEVICE MOBILE LAYOUT FIX
+   - HTML uses .screen, so .screen must be the actual full-screen layer.
+   - Use border-box everywhere to prevent 100% + padding overflow.
+   - Use dynamic viewport units for iOS/Android browser UI differences.
+   - Reserve safe-area space for notches / home indicators.
+   ============================================================ */
+
+:root {
+  --dark: #100f16;
+  --purple: #8b5cf6;
+  --purple-dark: #7043d6;
+  --green: #22c55e;
+  --red: #ef4444;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+body {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100dvh;
+  min-height: 100dvh;
+}
+
+/* Intro / result screens */
+#screen-intro,
+#screen-result {
+  background: var(--dark);
+}
+
+#screen-intro .card,
+#screen-result .card {
+  width: 100%;
+  max-width: 460px;
+  height: 100%;
+  min-height: 100%;
+  max-height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Camera/AR screens must remain a true edge-to-edge layer. */
+#screen-pose,
+#screen-image {
+  width: 100%;
+  height: 100dvh;
+  min-height: 100dvh;
+  background: #000;
+}
+
+#pose-video,
+#ar-mount,
+#ar-mount a-scene {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+#pose-video {
+  position: absolute;
+  inset: 0;
+  display: block;
+  object-fit: cover;
+  object-position: center center;
+}
+
+/* Top HUD: fixed to the safe area, with a width that works on narrow phones. */
+.hud-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  min-width: 0;
+  padding-top: calc(12px + env(safe-area-inset-top));
+  padding-right: 68px;
+  padding-bottom: 12px;
+  padding-left: 12px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.hud-banner {
+  width: min(100%, 430px);
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  padding: 9px 11px;
+  gap: 7px;
+  border-radius: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.hud-banner span:last-child {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: keep-all;
+}
+
+/* Camera flip button always stays inside the visual viewport. */
+.hud-flip {
+  position: absolute;
+  top: calc(12px + env(safe-area-inset-top));
+  right: calc(12px + env(safe-area-inset-right));
+  z-index: 30;
+}
+
+.icon-btn {
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+}
+
+/* Bottom HUD: safe-area aware and never allowed to create horizontal overflow. */
+.hud-bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  min-width: 0;
+  padding-top: 12px;
+  padding-right: calc(14px + env(safe-area-inset-right));
+  padding-bottom: calc(14px + env(safe-area-inset-bottom));
+  padding-left: calc(14px + env(safe-area-inset-left));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  z-index: 20;
+}
+
+.progress-ring-wrap {
+  flex: 0 0 auto;
+  width: clamp(72px, 23vw, 96px);
+  height: clamp(72px, 23vw, 96px);
+}
+
+.timer-wrap {
+  width: min(100%, 420px);
+  min-width: 0;
+}
+
+#btn-give-up {
+  width: min(100%, 420px);
+  min-height: 46px;
+}
+
+/* Intro/result card sizing.
+   The previous width:100% + padding could exceed the viewport because
+   box-sizing was not defined. */
+.card {
+  width: 100%;
+  max-width: 460px;
+  height: 100%;
+  min-height: 100%;
+  max-height: 100dvh;
+  padding:
+    calc(22px + env(safe-area-inset-top))
+    calc(18px + env(safe-area-inset-right))
+    calc(22px + env(safe-area-inset-bottom))
+    calc(18px + env(safe-area-inset-left));
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Keep buttons inside the card on every phone width. */
+.btn {
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  padding: 13px 16px;
+  line-height: 1.25;
+}
+
+.tabs {
+  width: 100%;
+  min-width: 0;
+}
+
+.tab {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* Result image cannot force the result page wider than the viewport. */
+.snapshot-wrap,
+.snapshot {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.snapshot {
+  height: auto;
+  aspect-ratio: 1080 / 790;
+  object-fit: contain;
+}
+
+.result-actions {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Very short phones / landscape: shrink vertical UI rather than push it
+   below the browser viewport. */
+@media (max-height: 700px) {
+  #screen-intro .card,
+  #screen-result .card {
+    padding-top: calc(14px + env(safe-area-inset-top));
+    padding-bottom: calc(14px + env(safe-area-inset-bottom));
+  }
+
+  .badge {
+    margin-bottom: 8px;
+  }
+
+  h1 {
+    font-size: 23px;
+    margin-bottom: 6px;
+  }
+
+  .sub {
+    margin-bottom: 14px;
+    line-height: 1.45;
+  }
+
+  .tabs {
+    margin-bottom: 12px;
+  }
+
+  .tab {
+    padding: 9px 5px;
+  }
+
+  .steps {
+    margin-bottom: 14px;
+    line-height: 1.65;
+  }
+
+  .progress-ring-wrap {
+    width: 72px;
+    height: 72px;
+  }
+
+  .hud-bottom {
+    gap: 7px;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 520px) {
+  .hud-top {
+    padding-top: calc(8px + env(safe-area-inset-top));
+    padding-bottom: 8px;
+  }
+
+  .hud-flip {
+    top: calc(8px + env(safe-area-inset-top));
+  }
+
+  .hud-bottom {
+    flex-direction: row;
+    align-items: flex-end;
+    padding-top: 8px;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
+  }
+
+  .progress-ring-wrap {
+    width: 64px;
+    height: 64px;
+  }
+
+  .timer-wrap {
+    flex: 1 1 auto;
+    width: auto;
+  }
+
+  #btn-give-up {
+    width: auto;
+    min-width: 110px;
+  }
+}
+
+/* Old Safari / older Android fallback */
+@supports not (height: 100dvh) {
+  body,
+  .screen,
+  #screen-pose,
+  #screen-image {
+    height: 100vh;
+    min-height: 100vh;
+  }
+
+  #screen-intro .card,
+  #screen-result .card,
+  .card {
+    max-height: 100vh;
+  }
+}
+
+/* ===== AR 시작 화면(인트로) 레이아웃 및 가시성 개선 ===== */
+
+/* 1. 전체 콘텐츠 수직/수평 중앙 정렬 및 뒤로가기 버튼 겹침 방지 */
+#screen-intro .card {
+  justify-content: center !important;  
+  text-align: center !important;       
+  /* 상단 여백을 줄이고 하단 여백을 늘려서 시각적 무게중심을 위로 올림 */
+  padding: calc(55px + env(safe-area-inset-top)) 24px calc(90px + env(safe-area-inset-bottom)) 24px !important; 
+}
+
+/* 2. 타이틀 및 서브 텍스트 가시성(크기/밝기) 조정 */
+#screen-intro h1 {
+  font-size: 29px !important;
+  color: #ffffff !important;
+  margin-bottom: 12px !important;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6) !important; /* 배경에서 글씨가 더 또렷하게 보이도록 그림자 추가 */
+}
+
+#screen-intro .sub {
+  font-size: 15px !important;
+  color: #e4e1f1 !important; /* 칙칙한 회색에서 밝은 톤으로 변경 */
+  word-break: keep-all !important;
+  margin-bottom: 32px !important;
+}
+
+/* 3. STEP 리스트 중앙 배치 및 가시성 개선 */
+#screen-intro .steps {
+  width: fit-content !important;    /* 내용물 크기만큼만 영역 차지 */
+  margin: 0 auto 30px !important;   /* 영역 자체를 화면 가운데로 정렬 */
+  text-align: left !important;      /* 리스트 텍스트는 읽기 편하게 좌측 정렬 유지 */
+  color: #ffffff !important;
+  font-size: 14.5px !important;
+  line-height: 1.9 !important;
+}
+
+#screen-intro .steps b {
+  color: #bfa8ff !important; /* 강조색(보라색)을 묻히지 않게 더 밝은 색으로 변경 */
+}
+
+/* 4. 시작 버튼 크기 최적화 및 우측 뚫고 나감 방지 */
+#screen-intro #btn-start {
+  display: flex !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-height: 58px !important;     /* 버튼을 위아래로 더 큼직하게 키움 */
+  box-sizing: border-box !important;
+  font-size: 17px !important;      /* 글씨 크기 확대 */
+  margin: 0 auto !important;
+  white-space: normal !important;
+  word-break: keep-all !important;
+}
+
+/* 5. 하단 힌트 텍스트 가시성 개선 */
+#screen-intro .hint {
+  color: #b0adbf !important; /* 배경에 묻히지 않게 더 밝은 회색으로 변경 */
+  font-size: 13px !important;
+  margin-top: 18px !important;
+}

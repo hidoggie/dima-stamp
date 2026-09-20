@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<title>타이거 포즈 인증 퀘스트</title>
+<link rel="stylesheet" href="./ar-style.css">
+
+<script src="./js/8frame-1.5.0.min.js"></script>
+<script src="./js/xrextras.js"></script>
+<script async src="./js/xr.js" data-preload-chunks="slam"></script>
+
+</head>
+<body>
+
+<!-- ============================== SCREEN 1 : INTRO ============================== -->
+<section id="screen-intro" class="screen active">
+  <div class="card">
+    <div class="badge">QUEST</div>
+    <h1>타이거를 찾아라!</h1>
+    <p class="sub">1단계 포즈 인증을 통과하면, 2단계에서 카메라로 호랑이 이미지를 인식시켜 퀘스트를 완료할 수 있어요.</p>
+
+    <div class="tabs" id="pose-tabs">
+      <button class="tab active" data-pose="thumbs_up">
+        <span class="tab-icon" data-icon="thumbs_up"></span>
+        엄지척 포즈
+      </button>
+      <button class="tab" data-pose="victory">
+        <span class="tab-icon" data-icon="victory"></span>
+        V 포즈
+      </button>
+    </div>
+
+    <ol class="steps">
+      <li><b>STEP 1</b> 선택한 손 포즈를 카메라에 맞춰 인증하기</li>
+      <li><b>STEP 2</b> 카메라로 호랑이 이미지를 인식시키기</li>
+    </ol>
+
+    <button id="btn-start" class="btn btn-primary">시작하기</button>
+    <p class="hint">카메라 권한 요청이 표시되면 허용해주세요.</p>
+  </div>
+</section>
+
+<!-- ============================== SCREEN 2 : POSE AUTH ============================== -->
+<section id="screen-pose" class="screen">
+  <video id="pose-video" playsinline autoplay muted></video>
+
+  <div class="guide-icon-wrap">
+    <span class="guide-icon" id="guide-icon" data-icon="thumbs_up"></span>
+  </div>
+
+  <div class="hud-top">
+    <div class="hud-banner">
+      <span class="badge-inline">POSE CHALLENGE</span>
+      <span id="pose-banner-text">엄지척 포즈를 인식시켜 주세요</span>
+    </div>
+  </div>
+
+  <button id="btn-flip-camera" class="icon-btn hud-flip" title="카메라 전환">⟲</button>
+
+  <div class="hud-bottom">
+    <div class="progress-ring-wrap">
+      <svg class="progress-ring" viewBox="0 0 120 120">
+        <circle class="progress-ring-bg" cx="60" cy="60" r="52"></circle>
+        <circle id="progress-ring-fg" class="progress-ring-fg" cx="60" cy="60" r="52"></circle>
+      </svg>
+      <div class="progress-ring-label" id="pose-status-label">포즈 인식 대기중</div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== TRANSITION OVERLAY (pose success -> AR ready) ====================
+     Sits above both screen-pose and screen-image. Fades in on top of the frozen pose
+     photo the instant the pose is confirmed (so there's no cut/black-frame while the
+     camera hands off), stays up while the 8th Wall AR scene spins up underneath, then
+     fades out once the AR camera feed is actually live — so the whole pose -> image
+     handoff reads as one continuous screen instead of two separate camera sessions. -->
+<div id="step-transition" aria-hidden="true">
+  <img id="transition-bg" alt="">
+  <div class="transition-scrim"></div>
+  <div class="transition-content">
+    <div class="spinner"></div>
+    <div class="transition-label">2단계 준비 중...</div>
+    <div class="transition-sub">호랑이 이미지 인식으로 이동할게요</div>
+  </div>
+</div>
+
+<!-- ============================== SCREEN 3 : IMAGE RECOGNITION (8th Wall AR) ============================== -->
+<section id="screen-image" class="screen">
+  <div id="ar-mount"></div>
+
+  <div class="hud-top">
+    <div class="hud-banner">
+      <span class="badge-inline">IMAGE CHALLENGE</span>
+      <span id="image-banner-text">호랑이 이미지를 화면 안에 비춰주세요</span>
+    </div>
+  </div>
+
+  <div class="hud-bottom">
+    <div class="timer-wrap">
+      <div class="timer-bar-track"><div id="image-timer-bar" class="timer-bar-fill"></div></div>
+      <div id="image-status-label">이미지 스캔 중...</div>
+    </div>
+    <button id="btn-give-up" class="btn btn-ghost">그만하기</button>
+  </div>
+</section>
+
+<!-- ============================== SCREEN 4 : RESULT ============================== -->
+<section id="screen-result" class="screen">
+  <div class="card" id="result-card">
+    <div id="result-icon" class="result-icon"></div>
+    <h1 id="result-title">인증 성공!</h1>
+    <p id="result-sub" class="sub">두 단계를 모두 완료했어요.</p>
+
+    <div class="snapshot-wrap">
+      <img id="result-photo" class="snapshot" alt="포즈 인증 + 이미지 인식 합성 사진">
+    </div>
+
+    <div class="result-actions">
+      <button id="btn-download" class="btn btn-secondary">사진 저장하기</button>
+      <button id="btn-retry" class="btn btn-primary">다시 도전하기</button>
+    </div>
+  </div>
+</section>
+
+<!-- hidden canvas used to compose the final result snapshot -->
+<canvas id="compose-canvas" style="display:none"></canvas>
+
+<script type="module" src="./ar-app.js"></script>
+</body>
+</html>
