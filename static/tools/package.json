@@ -1,0 +1,11 @@
+{
+  "name": "tiger-ar-quest-tools",
+  "private": true,
+  "type": "module",
+  "description": "One-off script used to generate ../tiger-target.json and ../assets/tiger-target.png from the source tiger artwork, using 8th Wall's official open-source image target CLI.",
+  "dependencies": {
+    "@8thwall/image-target-cli": "1.0.0",
+    "playwright": "^1.63.0",
+    "sharp": "^0.33.0"
+  }
+}
