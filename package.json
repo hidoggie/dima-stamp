@@ -1,12 +1,31 @@
 {
-  "name": "qr-dummy-server",
+  "name": "dima-stamp-tour-2026",
   "version": "1.0.0",
-  "description": "Render 더미 서버",
-  "main": "app.js",
+  "description": "",
+  "main": "server.js",
   "scripts": {
-    "start": "node app.js"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
   },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
   "dependencies": {
-    "express": "^4.18.2"
+    "@aws-sdk/client-s3": "^3.1111.0",
+    "@gltf-transform/core": "^4.2.1",
+    "@gltf-transform/functions": "^4.2.1",
+    "bcrypt": "^6.0.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.22.0",
+    "uuid": "^14.0.0",
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14",
+    "typescript": "^5.9.3"
   }
 }
