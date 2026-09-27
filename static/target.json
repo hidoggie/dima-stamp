@@ -1,16 +1,16 @@
 [
 {
-  "imagePath": "assets/G-marker-1.jpg",
+  "imagePath": "assets/G-marker.png",
   "name": "G-target",
   "type": "PLANAR",
   "properties": {
     "top": 0,
     "left": 0,
-    "width": 900,
-    "height": 683,
+    "width": 1300,
+    "height": 1501,
     "isRotated": false,
-    "originalWidth": 900,
-    "originalHeight": 683
+    "originalWidth": 1300,
+    "originalHeight": 1501
   },
   "userMetadataIsJson": true,
   "loadAutomatically": true,
@@ -18,17 +18,17 @@
   "updated": 1788929104030
 },
 {
-  "imagePath": "assets/I-marker-1.jpg",
+  "imagePath": "assets/I-marker.png",
   "name": "I-target",
   "type": "PLANAR",
   "properties": {
     "top": 0,
     "left": 0,
-    "width": 900,
-    "height": 694,
+    "width": 1300,
+    "height": 1463,
     "isRotated": false,
-    "originalWidth": 900,
-    "originalHeight": 694
+    "originalWidth": 1300,
+    "originalHeight": 1463
   },
   "userMetadataIsJson": true,
   "loadAutomatically": true,
@@ -36,17 +36,17 @@
   "updated": 1788929104030
 },
 {
-  "imagePath": "assets/F-marker-1.jpg",
+  "imagePath": "assets/F-marker.png",
   "name": "F-target",
   "type": "PLANAR",
   "properties": {
     "top": 0,
     "left": 0,
-    "width": 900,
-    "height": 715,
+    "width": 1304,
+    "height": 1514,
     "isRotated": false,
-    "originalWidth": 900,
-    "originalHeight": 715
+    "originalWidth": 1304,
+    "originalHeight": 1514
   },
   "userMetadataIsJson": true,
   "loadAutomatically": true,
@@ -54,17 +54,17 @@
   "updated": 1788929104030
 },
 {
-  "imagePath": "assets/T-marker-1.jpg",
+  "imagePath": "assets/T-marker.png",
   "name": "T-target",
   "type": "PLANAR",
   "properties": {
     "top": 0,
     "left": 0,
-    "width": 900,
-    "height": 668,
+    "width": 1308,
+    "height": 1465,
     "isRotated": false,
-    "originalWidth": 900,
-    "originalHeight": 668
+    "originalWidth": 1308,
+    "originalHeight": 1465
   },
   "userMetadataIsJson": true,
   "loadAutomatically": true,
