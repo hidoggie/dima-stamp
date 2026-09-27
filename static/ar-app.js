@@ -114,9 +114,18 @@ async function startPoseCamera() {
 
 function stopPoseCamera() {
   if (state.poseStream) {
+    // 1. 카메라 하드웨어 트랙 강제 정지
     state.poseStream.getTracks().forEach((t) => t.stop());
     state.poseStream = null;
   }
+  
+  // 2. [핵심 추가] 비디오 태그에 연결된 스트림을 강제로 끊어내고 초기화
+  const video = document.querySelector("#pose-video");
+  if (video) {
+    video.srcObject = null;
+    video.load(); // 브라우저 메모리에서 카메라 리소스를 완전히 해제
+  }
+
   if (state.poseRafId) {
     cancelAnimationFrame(state.poseRafId);
     state.poseRafId = null;
@@ -225,7 +234,7 @@ async function onPoseSuccess() {
   stopPoseCamera();
 
   await wait(500);
-  
+
   showScreen("image");
   await enterImageScreen(); 
 

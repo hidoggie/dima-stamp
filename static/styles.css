@@ -1289,5 +1289,12 @@ html, body {
 }
 .app-shell,
 .app-main {
-  max-width: 100vw;
+  max-width: 100%; /* 100vw는 모바일 브라우저에서 실제 화면보다 넓게 계산될 수 있어 100%로 사용 */
+}
+
+/* 8. 입력창은 부모가 어떤 이유로든 넓어지더라도 화면을 넘지 않도록 이중 안전장치 */
+.input,
+.textarea {
+  box-sizing: border-box !important;
+  max-width: 100% !important;
 }
