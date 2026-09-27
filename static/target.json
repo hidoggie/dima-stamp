@@ -1,3 +1,4 @@
+[
 {
   "imagePath": "assets/G-target.jpg",
   "name": "G-target",
@@ -15,7 +16,7 @@
   "loadAutomatically": true,
   "created": 1788929104030,
   "updated": 1788929104030
-}
+},
 {
   "imagePath": "assets/I-target.jpg",
   "name": "I-target",
@@ -33,7 +34,7 @@
   "loadAutomatically": true,
   "created": 1788929104030,
   "updated": 1788929104030
-}
+},
 {
   "imagePath": "assets/F-target.jpg",
   "name": "F-target",
@@ -51,7 +52,7 @@
   "loadAutomatically": true,
   "created": 1788929104030,
   "updated": 1788929104030
-}
+},
 {
   "imagePath": "assets/T-target.jpg",
   "name": "T-target",
@@ -70,3 +71,4 @@
   "created": 1788929104030,
   "updated": 1788929104030
 }
+]

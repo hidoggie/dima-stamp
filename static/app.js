@@ -968,7 +968,7 @@ async function handleQuizSubmit() {
         const json = await res.json();
         
         const applyConfig = () => {
-            window.XR8.XrController.configure({ imageTargetData: [json] });
+            window.XR8.XrController.configure({ imageTargetData: json });
         };
         
         if (window.XR8 && window.XR8.XrController) applyConfig();
