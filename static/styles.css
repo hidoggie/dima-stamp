@@ -289,6 +289,7 @@ img {
 }
 
 .zone-card {
+  text-align: center;
   --stamp-size: 52px;
   --check-size: 26px;
   position: relative;

@@ -197,7 +197,6 @@
     return `<div class="zone-card ${collected ? "collected" : ""}" style="${zoneStyle(zone)}">
       <img src="${zone.stamp}" alt="${id} 스탬프" />
       <strong>${id} ZONE</strong>
-      ${collected ? "<span>획득 완료</span>" : ""} 
     </div>`;
   }
 
@@ -475,13 +474,19 @@
               const matchedZoneId = Object.keys(ZONES).find(key => ZONES[key].targetName === recognizedTarget);
               
               if (matchedZoneId) {
+                  if (state.stamps.includes(matchedZoneId)) {
+                      showToast(`이미 ${matchedZoneId} Zone 스탬프를 획득했습니다. 다른 곳을 찾아주세요!`);
+                      window.stopTigerQuest();
+                      navigate("start"); // 퀴즈로 가지 않고 시작 화면으로 이동
+                      return; // 함수 강제 종료
+                  }
+
                   // 카메라가 실제 인식한 존으로 상태를 덮어씌웁니다.
                   state.zone = matchedZoneId; 
+                  showToast("AR 인증 성공! 퀴즈를 풀어보세요.");              
+                  window.stopTigerQuest();
+                  navigate("quiz");
               }
-
-              showToast("AR 인증 성공! 퀴즈를 풀어보세요.");              
-              window.stopTigerQuest();
-              navigate("quiz");
           });
       }
 
