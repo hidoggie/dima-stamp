@@ -194,11 +194,11 @@
   function zoneCard(id) {
     const zone = ZONES[id];
     const collected = state.stamps.includes(id);
-    return `<button class="zone-card ${collected ? "collected" : ""}" type="button" data-action="zone" data-zone="${id}" style="${zoneStyle(zone)}">
+    return `<div class="zone-card ${collected ? "collected" : ""}" style="${zoneStyle(zone)}">
       <img src="${zone.stamp}" alt="${id} 스탬프" />
       <strong>${id} ZONE</strong>
-      <span>${collected ? "획득 완료" : "QUIZ"}</span>
-    </button>`;
+      ${collected ? "<span>획득 완료</span>" : ""} 
+    </div>`;
   }
 
   function renderStart() {
@@ -220,7 +220,7 @@
         </button>
         <button class="btn" type="button" data-action="stampbook">내 스탬프북 보기</button>
       </div>
-      <p class="note">Zone을 선택하면 해당 퀴즈 디자인 페이지로 바로 이동합니다.</p>
+      <!--p class="note">Zone을 선택하면 해당 퀴즈 디자인 페이지로 바로 이동합니다.</p-->
     </section>`;
   }
 
@@ -473,12 +473,12 @@
       if (state.screen === "ar" && window.startTigerQuest) {
           const currentZone = ZONES[state.zone];
 
-          window.startTigerQuest(() => {
-              showToast("AR 인증 성공! 퀴즈를 풀어보세요.");              
-              window.stopTigerQuest();
-              navigate("quiz");
-          });
-      }
+      window.startTigerQuest(currentZone.targetName, () => {
+        showToast("AR 인증 성공! 퀴즈를 풀어보세요.");
+        window.stopTigerQuest();
+        navigate("quiz");
+      });
+    }
     });
   }
 
