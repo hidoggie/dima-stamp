@@ -284,19 +284,48 @@ async function enterImageScreen() {
   state.imageFound = false;
   state.imageStartedAt = performance.now();
 
+  // =================================================================
+  // [핵심 해결 1] AR 씬을 그리기 전에 타겟 데이터(JSON)를 먼저 다운로드합니다.
+  // =================================================================
+  let targetData = null;
+  try {
+    const res = await fetch("./target.json");
+    targetData = await res.json();
+  } catch (err) {
+    console.error("Failed to load target.json", err);
+    $("#image-status-label").textContent = "이미지 타겟 데이터를 불러오지 못했어요.";
+  }
+
+  // 데이터가 장전되면 XR8 엔진에 주입하는 함수
+  const applyConfig = () => {
+    if (targetData && window.XR8 && window.XR8.XrController) {
+      window.XR8.XrController.configure({ imageTargetData: targetData });
+      state.xrConfigured = true;
+    }
+  };
+
+  // XR8 라이브러리가 로드되어 있으면 즉시 주입, 아니면 로드될 때 주입
+  if (window.XR8) {
+    applyConfig();
+  } else {
+    window.addEventListener("xrloaded", applyConfig, { once: true });
+  }
+
+  // =================================================================
+  // [핵심 해결 2] 데이터 세팅이 완료된 후, 비로소 카메라(A-Frame)를 화면에 띄웁니다.
+  // =================================================================
   const mount = $("#ar-mount");
   mount.innerHTML = buildArSceneMarkup();
   const sceneEl = mount.querySelector("a-scene");
   state.currentSceneEl = sceneEl;
 
   const VALID_TARGETS = ["G-target", "I-target", "F-target", "T-target"];
-  let isReadyToScan = false;  
-  setTimeout(() => { 
-      isReadyToScan = true; 
-  }, 1500);
+  
+  // (이전에 적용했던 유령 캐시 방어 로직 유지)
+  let isReadyToScan = false;
+  setTimeout(() => { isReadyToScan = true; }, 1500); 
 
   const onFound = (e) => {
-    // isReadyToScan이 true일 때만 이벤트 처리하여 캐시 덤프 방어
     if (isReadyToScan && e.detail && VALID_TARGETS.includes(e.detail.name)) {
       onImageFound(e.detail.name);
     }
@@ -307,25 +336,9 @@ async function enterImageScreen() {
       $("#image-status-label").textContent = "이미지 스캔 중...";
     }
   };
+
   sceneEl.addEventListener("xrimagefound", onFound);
   sceneEl.addEventListener("xrimagelost", onLost);
-
-  const onXrLoaded = async () => {
-    try {
-      const res = await fetch("./target.json");
-      const json = await res.json();
-      window.XR8.XrController.configure({ imageTargetData: json });
-      state.xrConfigured = true;
-    } catch (err) {
-      console.error("Failed to load target.json", err);
-      $("#image-status-label").textContent = "이미지 타겟 데이터를 불러오지 못했어요.";
-    }
-  };
-  if (window.XR8) {
-    onXrLoaded();
-  } else {
-    window.addEventListener("xrloaded", onXrLoaded, { once: true });
-  }
 
   startImageTimeout();
   await waitForArReady(sceneEl);
