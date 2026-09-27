@@ -419,24 +419,25 @@ if (!fs.existsSync(uploadsDir)) {
 // 5. 스탬프 획득 완료 API (서버 사진 저장 제거)
 app.post("/api/tour/photo_upload", authenticate, async (req, res) => {
   try {
-    const { dima_id } = req.body; // image_data, review_text는 더 이상 받지 않음
+    const { dima_id } = req.body; 
     const { id: user_id } = req.user;
 
-    // DB 업데이트: photo_url, review_text 관련 업데이트 제거하고 상태만 변경
     const updateRes = await pool.query(
       `
-        UPDATE dima_stamps 
-        SET status = 'PHOTO_SUBMITTED', acquired_at = (now() AT TIME ZONE 'Asia/Seoul')
-        WHERE user_id = $1 AND dima_id = $2 AND status != 'PHOTO_SUBMITTED'  
+        INSERT INTO dima_stamps (user_id, dima_id, status, acquired_at) 
+        VALUES ($1, $2, 'PHOTO_SUBMITTED', (now() AT TIME ZONE 'Asia/Seoul'))
+        ON CONFLICT (user_id, dima_id) 
+        DO UPDATE SET status = 'PHOTO_SUBMITTED', acquired_at = (now() AT TIME ZONE 'Asia/Seoul')
+        WHERE dima_stamps.status != 'PHOTO_SUBMITTED'
         RETURNING id
       `,
       [user_id, dima_id],
     );
 
+    // 여전히 업데이트된 행이 없다면 (이미 제출 완료된 상태인 경우)
     if (updateRes.rowCount === 0) {
       return res.status(400).json({
-        error:
-          "최종 인증 처리를 진행할 수 없는 상태이거나 이미 완료된 곳입니다.",
+        error: "최종 인증 처리를 진행할 수 없는 상태이거나 이미 완료된 곳입니다.",
       });
     }
 
