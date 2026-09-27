@@ -471,17 +471,30 @@
   // 2. 화면 렌더링이 끝나고, 현재 화면이 AR이라면 퀘스트를 시작합니다.
       if (state.screen === "ar" && window.startTigerQuest) {
           window.startTigerQuest((recognizedTarget) => {
+              
               const matchedZoneId = Object.keys(ZONES).find(key => ZONES[key].targetName === recognizedTarget);
               
               if (matchedZoneId) {
+                  // 이미 스탬프를 획득한 곳인지 검사
                   if (state.stamps.includes(matchedZoneId)) {
-                      showToast(`이미 ${matchedZoneId} Zone 스탬프를 획득했습니다. 다른 곳을 찾아주세요!`);
+                      // 1. 카메라를 먼저 끕니다.
                       window.stopTigerQuest();
-                      navigate("start"); // 퀴즈로 가지 않고 시작 화면으로 이동
+                      
+                      // 2. 배경 화면을 시작 화면(start)으로 미리 변경해 둡니다.
+                      navigate("start"); 
+                      
+                      // 3. 그 위에 앱 디자인에 맞는 팝업 창을 띄웁니다.
+                      showModal(`<div class="result-icon inline-icon">${icon("check")}</div>
+                        <h2 id="already-title">안내</h2>
+                        <p style="margin-top:10px">이미 <strong>${matchedZoneId} Zone</strong> 스탬프를 획득했습니다.<br />다른 곳의 스탬프를 찾아주세요!</p>
+                        <div class="button-stack">
+                          <button class="btn btn-primary" type="button" data-action="close-modal">확인</button>
+                        </div>`, "already-title", "#FF8C24");
+                        
                       return; // 함수 강제 종료
                   }
 
-                  // 카메라가 실제 인식한 존으로 상태를 덮어씌웁니다.
+                  // 획득하지 않은 곳이라면 정상적으로 퀴즈 진입
                   state.zone = matchedZoneId; 
                   showToast("AR 인증 성공! 퀴즈를 풀어보세요.");              
                   window.stopTigerQuest();
