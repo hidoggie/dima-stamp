@@ -282,9 +282,14 @@ async function enterImageScreen() {
   state.currentSceneEl = sceneEl;
 
   const VALID_TARGETS = ["G-target", "I-target", "F-target", "T-target"];
+  let isReadyToScan = false;  
+  setTimeout(() => { 
+      isReadyToScan = true; 
+  }, 1500);
 
   const onFound = (e) => {
-    if (e.detail && VALID_TARGETS.includes(e.detail.name)) {
+    // isReadyToScan이 true일 때만 이벤트 처리하여 캐시 덤프 방어
+    if (isReadyToScan && e.detail && VALID_TARGETS.includes(e.detail.name)) {
       onImageFound(e.detail.name);
     }
   };
