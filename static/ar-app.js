@@ -248,25 +248,21 @@ function buildArSceneMarkup() {
       xrextras-runtime-error
       renderer="colorManagement: true; physicallyBasedRendering: true;"
       xrweb="disableWorldTracking: true">
-
+      
       <a-camera position="0 1 1" raycaster="objects: .cantap" cursor="fuse: false; rayOrigin: mouse;"></a-camera>
-      <a-light type="directional" intensity="1.2" position="0 1 0"></a-light>
-      <a-light type="ambient" intensity="0.35"></a-light>
-
-      <xrextras-named-image-target name="${state.currentTargetName}" id="tiger-target-entity">
-        <a-plane
-          class="found-frame"
-          material="color:#22c55e; opacity:0.18; transparent:true; shader:flat;"
-          width="1" height="1.3"
-          position="0 0 0.01">
-        </a-plane>
-      </xrextras-named-image-target>
+      
+      <!-- 시각적 하이라이트가 필요 없다면 image-target 태그들을 생략해도 백그라운드에서 인식 이벤트는 발생합니다. -->
+      <!-- 만약 인식된 이미지 위에 초록색 영역을 표시하고 싶다면 4개를 모두 선언해줍니다. -->
+      <xrextras-named-image-target name="G-target"></xrextras-named-image-target>
+      <xrextras-named-image-target name="I-target"></xrextras-named-image-target>
+      <xrextras-named-image-target name="F-target"></xrextras-named-image-target>
+      <xrextras-named-image-target name="T-target"></xrextras-named-image-target>
     </a-scene>
   `;
 }
 
 async function enterImageScreen() {
-  $("#image-banner-text").textContent = "엑스배너 이미지를 화면 안에 비춰주세요";
+  $("#image-banner-text").textContent = "스탬프 투어 배너 G, I, F, T 중 하나의 이미지를 비춰주세요";
   $("#image-status-label").textContent = "이미지 스캔 중...";
   $("#image-timer-bar").style.width = "100%";
   state.imageFound = false;
@@ -275,29 +271,29 @@ async function enterImageScreen() {
   const mount = $("#ar-mount");
   mount.innerHTML = buildArSceneMarkup();
   const sceneEl = mount.querySelector("a-scene");
-  const targetEl = mount.querySelector("#tiger-target-entity");
   state.currentSceneEl = sceneEl;
 
+  const VALID_TARGETS = ["G-target", "I-target", "F-target", "T-target"];
+
   const onFound = (e) => {
-    if (!e.detail || e.detail.name === state.currentTargetName) onImageFound();
+    if (e.detail && VALID_TARGETS.includes(e.detail.name)) {
+      onImageFound();
+    }
   };
+
   const onLost = (e) => {
-    if ((!e.detail || e.detail.name === state.currentTargetName) && !state.imageFound) {
+    if (e.detail && VALID_TARGETS.includes(e.detail.name) && !state.imageFound) {
       $("#image-status-label").textContent = "이미지 스캔 중...";
     }
   };
   sceneEl.addEventListener("xrimagefound", onFound);
   sceneEl.addEventListener("xrimagelost", onLost);
-  if (targetEl) {
-    targetEl.addEventListener("xrextrasfound", onFound);
-    targetEl.addEventListener("xrextraslost", onLost);
-  }
 
   const onXrLoaded = async () => {
     try {
       const res = await fetch("./target.json");
       const json = await res.json();
-      window.XR8.XrController.configure({ imageTargetData: [json] });
+      window.XR8.XrController.configure({ imageTargetData: json });
       state.xrConfigured = true;
     } catch (err) {
       console.error("Failed to load target.json", err);
