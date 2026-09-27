@@ -160,8 +160,7 @@ img {
 }
 
 .app-main {
-  min-height: calc(100dvh - 66px - var(--safe-top));
-  padding: 6px 18px calc(28px + var(--safe-bottom));
+    padding: 6px 18px calc(28px + var(--safe-bottom));
 }
 
 .screen {
