@@ -68,7 +68,7 @@ async function initDB() {
                 name VARCHAR(100) NOT NULL,
                 lat DOUBLE PRECISION NOT NULL,
                 lng DOUBLE PRECISION NOT NULL,
-                radius_m INT DEFAULT 100            -- 기본 100m 로               
+                radius_m INT DEFAULT 150            -- 기본 150m 로               
             );
         `);
 
