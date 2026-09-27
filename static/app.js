@@ -959,8 +959,8 @@ async function handleQuizSubmit() {
     if (!mount) return;
 
     const zone = ZONES[state.zone];
-    const targetName = zone.targetName || "tiger-target";
-    const targetFile = zone.targetFile || "tiger-target.json";
+    const targetName = zone.targetName || "G-target";
+    const targetFile = zone.targetFile || "target.json";
 
     // 1. 해당 구역의 AR 타겟 JSON을 동적으로 불러옵니다.
     try {
