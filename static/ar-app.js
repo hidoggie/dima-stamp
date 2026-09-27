@@ -36,7 +36,6 @@ const POSE_LABEL_KO = {
 
 const GESTURE_CONFIDENCE_THRESHOLD = 0.65;
 const POSE_HOLD_MS = 1200; // how long the gesture must be held to pass
-const IMAGE_TARGET_NAME = "tiger-target";
 const IMAGE_TIMEOUT_MS = 25000; // give up automatically after this long
 
 // ---------------------------------------------------------------------------
@@ -59,6 +58,7 @@ const state = {
   imageTimerRafId: null,
   imageStartedAt: null,
   imageFound: false,
+  currentTargetName: null,
 };
 
 // ---------------------------------------------------------------------------
@@ -241,12 +241,7 @@ function wait(ms) {
 // STEP 2 — IMAGE RECOGNITION (8th Wall / A-Frame / XRExtras)
 // ---------------------------------------------------------------------------
 function buildArSceneMarkup() {
-  // NOTE: no `screenshot` component and no `preserveDrawingBuffer` here —
-  // neither reliably captures 8th Wall's composited camera+AR frame (see the
-  // big comment above registerCanvasScreenshotModule() for why). The actual
-  // capture happens via XR8.CanvasScreenshot.takeScreenshot() in
-  // captureArSnapshot() below, which is registered as a camera pipeline
-  // module once at module load.
+
   return `
     <a-scene
       xrextras-loading
@@ -258,7 +253,7 @@ function buildArSceneMarkup() {
       <a-light type="directional" intensity="1.2" position="0 1 0"></a-light>
       <a-light type="ambient" intensity="0.35"></a-light>
 
-      <xrextras-named-image-target name="${IMAGE_TARGET_NAME}" id="tiger-target-entity">
+      <xrextras-named-image-target name="${state.currentTargetName}" id="tiger-target-entity">
         <a-plane
           class="found-frame"
           material="color:#22c55e; opacity:0.18; transparent:true; shader:flat;"
@@ -271,7 +266,7 @@ function buildArSceneMarkup() {
 }
 
 async function enterImageScreen() {
-  $("#image-banner-text").textContent = "호랑이 이미지를 화면 안에 비춰주세요";
+  $("#image-banner-text").textContent = "엑스배너 이미지를 화면 안에 비춰주세요";
   $("#image-status-label").textContent = "이미지 스캔 중...";
   $("#image-timer-bar").style.width = "100%";
   state.imageFound = false;
@@ -284,10 +279,10 @@ async function enterImageScreen() {
   state.currentSceneEl = sceneEl;
 
   const onFound = (e) => {
-    if (!e.detail || e.detail.name === IMAGE_TARGET_NAME) onImageFound();
+    if (!e.detail || e.detail.name === state.currentTargetName) onImageFound();
   };
   const onLost = (e) => {
-    if ((!e.detail || e.detail.name === IMAGE_TARGET_NAME) && !state.imageFound) {
+    if ((!e.detail || e.detail.name === state.currentTargetName) && !state.imageFound) {
       $("#image-status-label").textContent = "이미지 스캔 중...";
     }
   };
@@ -300,12 +295,12 @@ async function enterImageScreen() {
 
   const onXrLoaded = async () => {
     try {
-      const res = await fetch("./tiger-target.json");
+      const res = await fetch("./target.json");
       const json = await res.json();
       window.XR8.XrController.configure({ imageTargetData: [json] });
       state.xrConfigured = true;
     } catch (err) {
-      console.error("Failed to load tiger-target.json", err);
+      console.error("Failed to load target.json", err);
       $("#image-status-label").textContent = "이미지 타겟 데이터를 불러오지 못했어요.";
     }
   };
@@ -365,7 +360,7 @@ function onImageFound() {
   state.imageFound = true;
   clearImageTimers();
   $("#image-status-label").textContent = "인식 성공!";
-  $("#image-banner-text").textContent = "호랑이를 찾았어요!";
+  $("#image-banner-text").textContent = "이미지를 찾았어요!";
 
   setTimeout(async () => {
     state.imageFrameUrl = await captureArSnapshot();
@@ -431,7 +426,7 @@ async function finishGame(success) {
   icon.textContent = "✕";
 
   $("#result-title").textContent = "인증 실패";
-  $("#result-sub").textContent = "호랑이 이미지를 다시 인식시켜 도전해보세요.";
+  $("#result-sub").textContent = "엑스배너 이미지를 다시 인식시켜 도전해보세요.";
 
   const photoImg = $("#result-photo");
   const downloadBtn = $("#btn-download");
@@ -517,7 +512,7 @@ function composeResultPhoto(success) {
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(
-      success ? "호랑이 찾기 · SUCCESS" : "호랑이 찾기 · FAILED",
+      success ? "이미지 찾기 · SUCCESS" : "이미지 찾기 · FAILED",
       canvas.width / 2,
       panelH + captionH / 2
     );
@@ -610,12 +605,12 @@ function bindArEvents() {
     btnDownload.onclick = async () => {
       const blob = state.resultPhotoBlob;
       if (!blob) return;
-      const fileName = "tiger-quest-result.png";
+      const fileName = "quest-result.png";
       const file = new File([blob], fileName, { type: "image/png" });
       
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
-          await navigator.share({ files: [file], title: "타이거 포즈 인증 퀘스트" });
+          await navigator.share({ files: [file], title: "손가락 포즈 인증 퀘스트" });
           return;
         } catch (err) {
           if (err && err.name === "AbortError") return;
@@ -635,14 +630,11 @@ function bindArEvents() {
   }
 }
 
-window.startTigerQuest = function(onSuccessCallback) {
-  // 메인 앱에서 전달받은 성공 콜백 저장
+window.startTigerQuest = function(targetName, onSuccessCallback) {
+  state.currentTargetName = targetName;
   window.onQuestSuccess = onSuccessCallback;
   
-  // ★ DOM이 화면에 그려진 상태이므로, 이때 이벤트 리스너들을 부착합니다!
   bindArEvents();
-
-  // 초기화 후 인트로 화면 표시
   resetGameState();
   showScreen("intro");
 };

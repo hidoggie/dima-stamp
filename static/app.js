@@ -11,8 +11,8 @@
     G: {
       id: "G",
       dima_id: 1,
-      targetName: "tiger-target",       
-      targetFile: "tiger-target.json",
+      targetName: "G-target",       
+      targetFile: "target.json",
       name: "Go first",
       meaning: "개척과 도전",
       color: "#E5007F",
@@ -29,8 +29,8 @@
     I: {
       id: "I",
       dima_id: 2,
-      targetName: "tiger-target",       
-      targetFile: "tiger-target.json",
+      targetName: "I-target",       
+      targetFile: "target.json",
       name: "Intensive Practice",
       meaning: "깊이 있는 숙련",
       color: "#890C84",
@@ -47,8 +47,8 @@
     F: {
       id: "F",
       dima_id: 3,
-      targetName: "tiger-target",       
-      targetFile: "tiger-target.json",
+      targetName: "F-target",       
+      targetFile: "target.json",
       name: "Fearless of failure",
       meaning: "실패를 두려워하지 않음",
       color: "#381F87",
@@ -65,8 +65,8 @@
     T: {
       id: "T",
       dima_id: 4,
-      targetName: "tiger-target",       
-      targetFile: "tiger-target.json",
+      targetName: "T-target",       
+      targetFile: "target.json",
       name: "Teamwork",
       meaning: "협력과 소통",
       color: "#F18E29",
@@ -471,11 +471,10 @@
 
   // 2. 화면 렌더링이 끝나고, 현재 화면이 AR이라면 퀘스트를 시작합니다.
       if (state.screen === "ar" && window.startTigerQuest) {
+          const currentZone = ZONES[state.zone];
+
           window.startTigerQuest(() => {
-              // onSuccessCallback: AR 2단계 인증 성공 시 실행될 동작
-              showToast("AR 인증 성공! 퀴즈를 풀어보세요.");
-              
-              // 카메라 끄기 및 퀴즈 화면으로 전환
+              showToast("AR 인증 성공! 퀴즈를 풀어보세요.");              
               window.stopTigerQuest();
               navigate("quiz");
           });
@@ -847,8 +846,8 @@ async function handleQuizSubmit() {
  <section id="screen-intro" class="ar-screen active">
   <div class="card">
     <!--div class="badge">QUEST</div-->
-    <h1>호랑이를 찾아라!</h1>
-    <p class="sub">1단계 포즈 인증을 통과하면, 2단계에서 카메라로 호랑이 이미지를 인식시켜 퀘스트를 완료할 수 있어요.</p>
+    <h1>엑스배너 이미지를 찾아라!</h1>
+    <p class="sub">1단계 포즈 인증을 통과하면, 2단계에서 카메라로 엑스배너 이미지를 인식시켜 퀘스트를 완료할 수 있어요.</p>
 
     <div class="tabs" id="pose-tabs">
       <button class="tab active" data-pose="thumbs_up">
@@ -863,7 +862,7 @@ async function handleQuizSubmit() {
 
     <ol class="steps">
       <li><b>STEP 1</b> 선택한 손 포즈를 카메라에 맞춰 인증하기</li>
-      <li><b>STEP 2</b> 카메라로 호랑이 이미지를 인식시키기</li>
+      <li><b>STEP 2</b> 카메라로 엑스배너 이미지를 인식시키기</li>
     </ol>
 
     <button id="btn-start" class="btn btn-primary">시작하기</button>
@@ -906,7 +905,7 @@ async function handleQuizSubmit() {
   <div class="transition-content">
     <div class="spinner"></div>
     <div class="transition-label">2단계 준비 중...</div>
-    <div class="transition-sub">호랑이 이미지 인식으로 이동할게요</div>
+    <div class="transition-sub">엑스배너 이미지 인식으로 이동할게요</div>
   </div>
 </div>
 
@@ -917,7 +916,7 @@ async function handleQuizSubmit() {
   <div class="hud-top">
     <div class="hud-banner">
       <span class="badge-inline">IMAGE CHALLENGE</span>
-      <span id="image-banner-text">호랑이 이미지를 화면 안에 비춰주세요</span>
+      <span id="image-banner-text">엑스배너 이미지를 화면 안에 비춰주세요</span>
     </div>
   </div>
 
