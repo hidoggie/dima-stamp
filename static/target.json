@@ -1,0 +1,72 @@
+{
+  "imagePath": "assets/G-target.jpg",
+  "name": "G-target",
+  "type": "PLANAR",
+  "properties": {
+    "top": 0,
+    "left": 0,
+    "width": 1300,
+    "height": 1523,
+    "isRotated": false,
+    "originalWidth": 1300,
+    "originalHeight": 1523
+  },
+  "userMetadataIsJson": true,
+  "loadAutomatically": true,
+  "created": 1788929104030,
+  "updated": 1788929104030
+}
+{
+  "imagePath": "assets/I-target.jpg",
+  "name": "I-target",
+  "type": "PLANAR",
+  "properties": {
+    "top": 0,
+    "left": 0,
+    "width": 1300,
+    "height": 1501,
+    "isRotated": false,
+    "originalWidth": 1300,
+    "originalHeight": 1501
+  },
+  "userMetadataIsJson": true,
+  "loadAutomatically": true,
+  "created": 1788929104030,
+  "updated": 1788929104030
+}
+{
+  "imagePath": "assets/F-target.jpg",
+  "name": "F-target",
+  "type": "PLANAR",
+  "properties": {
+    "top": 0,
+    "left": 0,
+    "width": 1304,
+    "height": 1530,
+    "isRotated": false,
+    "originalWidth": 1304,
+    "originalHeight": 1530
+  },
+  "userMetadataIsJson": true,
+  "loadAutomatically": true,
+  "created": 1788929104030,
+  "updated": 1788929104030
+}
+{
+  "imagePath": "assets/T-target.jpg",
+  "name": "T-target",
+  "type": "PLANAR",
+  "properties": {
+    "top": 0,
+    "left": 0,
+    "width": 1308,
+    "height": 1509,
+    "isRotated": false,
+    "originalWidth": 1308,
+    "originalHeight": 1509
+  },
+  "userMetadataIsJson": true,
+  "loadAutomatically": true,
+  "created": 1788929104030,
+  "updated": 1788929104030
+}
