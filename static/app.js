@@ -519,34 +519,42 @@
 
 async function handleQuizSubmit() {
     const zone = ZONES[state.zone];
-    if (state.selectedAnswer === zone.answer) {
-      if (!state.stamps.includes(zone.id)) {
-        try {
-            // 정답을 맞추면 최종 스탬프(PHOTO_SUBMITTED 상태) 획득 API 호출
-            const res = await fetch("/api/tour/photo_upload", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ dima_id: zone.dima_id })
-            });
-            const data = await res.json();
+    const submitBtn = document.querySelector("#quiz-submit");
 
-            if (data.success) {
-                state.stamps.push(zone.id); // UI 반영
-                showCorrect(zone);
-            } else {
-                showToast("스탬프 발급 중 오류가 발생했습니다.");
+    if (state.selectedAnswer === zone.answer) {
+        if (!state.stamps.includes(zone.id)) {
+            try {
+                // API 통신 시작 전 버튼 비활성화 (중복 클릭 방지)
+                if (submitBtn) submitBtn.disabled = true;
+
+                // 정답을 맞추면 최종 스탬프(PHOTO_SUBMITTED 상태) 획득 API 호출
+                const res = await fetch("/api/tour/photo_upload", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ dima_id: zone.dima_id })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    state.stamps.push(zone.id); // UI 반영
+                    showCorrect(zone);
+                } else {
+                    showToast("스탬프 발급 중 오류가 발생했습니다.");
+                }
+            } catch (err) {
+                showToast("네트워크 오류입니다.");
+            } finally {
+                // 통신이 완료되면 응답 결과와 상관없이 버튼 다시 활성화
+                if (submitBtn) submitBtn.disabled = false;
             }
-        } catch (err) {
-            showToast("네트워크 오류입니다.");
+        } else {
+            // 이미 획득한 경우
+            showCorrect(zone);
         }
-      } else {
-         // 이미 획득한 경우
-         showCorrect(zone);
-      }
     } else {
-      showWrong(zone);
+        showWrong(zone);
     }
-  }
+}
 
   function showCorrect(zone) {
     showModal(`<div class="result-icon inline-icon">${icon("check")}</div>
