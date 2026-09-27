@@ -1196,7 +1196,8 @@ img {
   max-width: 100% !important;
 }
 
-.app-main .button-stack .btn {
+.app-main .button-stack .btn,
+.app-main .btn {
   display: flex !important;           /* inline-flex를 강제 해제하여 공간 다 차지하도록 변경 */
   width: 100% !important;
   max-width: 100% !important;
@@ -1209,9 +1210,17 @@ img {
 }
 
 /* 버튼 내부에 있는 아이콘(SVG)이 줄바꿈에 밀려 찌그러지지 않게 방어 */
-.app-main .button-stack .btn svg {
+.app-main .button-stack .btn svg,
+.app-main .btn svg {
   flex-shrink: 0 !important;
   margin-left: 4px;
+}
+
+/* 폼(form.stack) 안에 button-stack 없이 바로 들어간 submit 버튼도 폭 보장 */
+.app-main form.stack .btn {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
 }
 
 /* 1. 브라우저 기본 fieldset 마진 초기화 (버튼 및 폼 가로폭 뚫림 완벽 해결) */
@@ -1253,4 +1262,32 @@ fieldset {
 .input,
 .textarea {
   font-size: 16px !important;
+}
+
+/* 6. iOS/안드로이드 기본 입력창 스타일(및 자동완성 하이라이트)이
+      커스텀 박스와 어긋나 보이는 문제 방지 */
+.input,
+.textarea {
+  -webkit-appearance: none;
+  appearance: none;
+  background-clip: padding-box;
+  border: 1px solid transparent; /* 자체 박스 경계를 명시해 네이티브 렌더링과 어긋나지 않게 함 */
+}
+
+/* iOS 자동완성 시 배경색이 노랗게 바뀌며 박스가 어긋나 보이는 현상 방지 */
+.input:-webkit-autofill,
+.input:-webkit-autofill:hover,
+.input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #fff;
+  -webkit-box-shadow: 0 0 0px 1000px rgba(31, 30, 41, 1) inset;
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+/* 7. 어떤 모바일 브라우저에서도 가로 스크롤/오버플로우가 절대 생기지 않도록 하는 안전장치 */
+html, body {
+  overflow-x: hidden;
+}
+.app-shell,
+.app-main {
+  max-width: 100vw;
 }

@@ -215,20 +215,19 @@ async function onPoseSuccess() {
   state.poseDone = true;
   $("#pose-status-label").textContent = "PERFECT!";
 
-  // capture the winning pose frame — used later as one half of the single
-  // merged result photo, so keep it plain/unlabelled (no per-shot banner).
   state.poseFrameUrl = captureVideoSnapshot($("#pose-video"));
 
   const overlay = $("#step-transition");
   $("#transition-bg").src = state.poseFrameUrl;
   overlay.classList.add("visible");
 
-  // let the fade-in finish while the (still-live) pose video is hidden behind it,
-  // THEN stop the camera and swap screens underneath — invisible to the user.
   await wait(400);
   stopPoseCamera();
+
+  await wait(500);
+  
   showScreen("image");
-  await enterImageScreen(); // mounts the AR scene and resolves once its camera is live (or times out)
+  await enterImageScreen(); 
 
   overlay.classList.remove("visible");
 }
