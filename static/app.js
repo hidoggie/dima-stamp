@@ -193,11 +193,13 @@
 
   function zoneCard(id) {
     const zone = ZONES[id];
-    const collected = state.stamps.includes(id);
-    return `<div class="zone-card ${collected ? "collected" : ""}" style="${zoneStyle(zone)}">
-      <img src="${zone.stamp}" alt="${id} 스탬프" />
+    const collected = state.stamps.includes(id); // 스탬프 획득 여부 확인
+    
+    // collected가 true일 경우 버튼에 'disabled' 속성을 추가하여 터치를 막습니다.
+    return `<button class="zone-card ${collected ? "collected" : ""}" type="button" data-action="zone" data-zone="${id}" style="${zoneStyle(zone)}" ${collected ? "disabled" : ""}>
+      <img src="${zone.stamp}" alt="${id} 스탬프 ${collected ? "획득 완료" : "미획득"}" />
       <strong>${id} ZONE</strong>
-    </div>`;
+    </button>`;
   }
 
   function renderStart() {
@@ -212,14 +214,16 @@
       <div class="map-card">
         <div class="map-window"><img src="assets/campus-zone-map.png" alt="DIMA 캠퍼스 G, I, F, T Zone 배치도" /></div>
       </div>
+      <p class="note" style="margin-top: 10px; text-align: center;">도전할 Zone을 직접 선택해주세요.</p>
       <div class="zone-grid" aria-label="GIFT Zone 선택">${ORDER.map(zoneCard).join("")}</div>
       <div class="button-stack">
-        <button class="btn btn-gift" type="button" data-action="start">
-          ${allComplete ? "GIFT 완주 화면 보기" : "GIFT 스탬프투어 START!"} ${icon("arrow")}
-        </button>
+        ${allComplete ? 
+          `<button class="btn btn-gift" type="button" data-action="complete">
+            GIFT 완주 화면 보기 ${icon("arrow")}
+          </button>` : ''
+        }
         <button class="btn" type="button" data-action="stampbook">내 스탬프북 보기</button>
       </div>
-      <!--p class="note">Zone을 선택하면 해당 퀴즈 디자인 페이지로 바로 이동합니다.</p-->
     </section>`;
   }
 
@@ -271,8 +275,8 @@
         <span>${complete ? "4개의 GIFT 스탬프를 모두 모았습니다." : `${4 - state.stamps.length}개의 스탬프가 더 필요합니다.`}</span>
       </div>
       <div class="button-stack">
-        <button class="btn ${complete ? "btn-gift" : "btn-primary"}" type="button" data-action="${complete ? "complete" : "next-zone"}">
-          ${complete ? "완주 확인하기" : "다음 퀴즈 풀기"} ${icon("arrow")}
+        <button class="btn ${complete ? "btn-gift" : "btn-primary"}" type="button" data-action="${complete ? "complete" : "home"}">
+          ${complete ? "완주 확인하기" : "다른 Zone 선택하기"} ${icon("arrow")}
         </button>
       </div>
     </section>`;
@@ -469,36 +473,37 @@
       window.scrollTo({ top: 0, behavior: "auto" });
 
   // 2. 화면 렌더링이 끝나고, 현재 화면이 AR이라면 퀘스트를 시작합니다.
-      if (state.screen === "ar" && window.startTigerQuest) {
-          window.startTigerQuest((recognizedTarget) => {
-              
-              const matchedZoneId = Object.keys(ZONES).find(key => ZONES[key].targetName === recognizedTarget);
-              
-              if (matchedZoneId) {
-                  state.zone = matchedZoneId;
-                  // 이미 스탬프를 획득한 곳인지 검사
-                  if (state.stamps.includes(matchedZoneId)) {
-                      window.stopTigerQuest();
-                      navigate("start"); 
-                      
-                      // 3. 그 위에 앱 디자인에 맞는 팝업 창을 띄웁니다.
-                      showModal(`<div class="result-icon inline-icon">${icon("check")}</div>
-                        <h2 id="already-title">안내</h2>
-                        <p style="margin-top:10px">이미 <strong>${matchedZoneId} Zone</strong> 스탬프를 획득했습니다.<br />다른 곳의 스탬프를 찾아주세요!</p>
-                        <div class="button-stack">
-                          <button class="btn btn-primary" type="button" data-action="close-modal">확인</button>
-                        </div>`, "already-title", "#FF8C24");
-                        
-                      return; // 함수 강제 종료
-                  }
+if (state.screen === "ar" && window.startTigerQuest) {
+    
+    // 현재 유저가 선택해서 들어온 Zone의 타겟 이름 (예: "F-target")
+    const expectedTargetName = ZONES[state.zone].targetName;
 
-                  // 획득하지 않은 곳이라면 정상적으로 퀴즈 진입
-                  showToast("AR 인증 성공! 퀴즈를 풀어보세요.");              
-                  window.stopTigerQuest();
-                  navigate("quiz");
-              }
-          });
-      }
+    // startTigerQuest의 첫 번째 인자로 해당 타겟 이름을 넘겨줍니다.
+    window.startTigerQuest(expectedTargetName, (recognizedTarget) => {
+        
+        // (단일 타겟이므로 무조건 일치하지만, 안전을 위해 검증)
+        if (recognizedTarget === expectedTargetName) {
+            
+            // 이미 스탬프를 획득한 곳인지 검사
+            if (state.stamps.includes(state.zone)) {
+                window.stopTigerQuest();
+                navigate("start"); 
+                showModal(`<div class="result-icon inline-icon">${icon("check")}</div>
+                  <h2 id="already-title">안내</h2>
+                  <p style="margin-top:10px">이미 <strong>${state.zone} Zone</strong> 스탬프를 획득했습니다.<br />다른 곳의 스탬프를 찾아주세요!</p>
+                  <div class="button-stack">
+                    <button class="btn btn-primary" type="button" data-action="close-modal">확인</button>
+                  </div>`, "already-title", "#FF8C24");
+                return;
+            }
+
+            // 정상 획득
+            showToast("AR 인증 성공! 퀴즈를 풀어보세요.");              
+            window.stopTigerQuest();
+            navigate("quiz");
+        }
+    });
+}
 
     });
   }

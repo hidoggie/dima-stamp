@@ -250,6 +250,8 @@ function wait(ms) {
 // ---------------------------------------------------------------------------
 function buildArSceneMarkup() {
 
+const targetName = state.currentTargetName || "G-target";
+  
   return `
     <a-scene
       xrextras-loading
@@ -259,20 +261,8 @@ function buildArSceneMarkup() {
       
       <a-camera position="0 1 1" raycaster="objects: .cantap" cursor="fuse: false; rayOrigin: mouse;"></a-camera>
       
-      <!-- 시각적 하이라이트가 필요 없다면 image-target 태그들을 생략해도 백그라운드에서 인식 이벤트는 발생합니다. -->
-      <!-- 만약 인식된 이미지 위에 초록색 영역을 표시하고 싶다면 4개를 모두 선언해줍니다. -->
-      <xrextras-named-image-target name="G-target">
-        <a-plane material="color:#22c55e; opacity:0.4; transparent:true;" width="1" height="1.3" position="0 0 0.01"></a-plane>
-      </xrextras-named-image-target>
-      <xrextras-named-image-target name="I-target">
-        <a-plane material="color:#22c55e; opacity:0.4; transparent:true;" width="1" height="1.3" position="0 0 0.01"></a-plane>
-      </xrextras-named-image-target>
-      <xrextras-named-image-target name="F-target">
-        <a-plane material="color:#22c55e; opacity:0.4; transparent:true;" width="1" height="1.3" position="0 0 0.01"></a-plane>  
-      </xrextras-named-image-target>
-      <xrextras-named-image-target name="T-target">
-        <a-plane material="color:#22c55e; opacity:0.4; transparent:true;" width="1" height="1.3" position="0 0 0.01"></a-plane>
-      </xrextras-named-image-target>
+      <!-- 딱 하나의 타겟만 집중해서 추적 -->
+      <xrextras-named-image-target name="${targetName}"></xrextras-named-image-target>
     </a-scene>
   `;
 }
@@ -319,7 +309,7 @@ async function enterImageScreen() {
   const sceneEl = mount.querySelector("a-scene");
   state.currentSceneEl = sceneEl;
 
-  const VALID_TARGETS = ["G-target", "I-target", "F-target", "T-target"];
+  const VALID_TARGETS = [state.currentTargetName];
   
   // (이전에 적용했던 유령 캐시 방어 로직 유지)
   let isReadyToScan = false;
@@ -661,7 +651,8 @@ function bindArEvents() {
   }
 }
 
-window.startTigerQuest = function(onSuccessCallback) {
+window.startTigerQuest = function(expectedTarget, onSuccessCallback) {
+  state.currentTargetName = expectedTarget; // 선택된 타겟 이름 저장
   window.onQuestSuccess = onSuccessCallback;
   
   bindArEvents();
