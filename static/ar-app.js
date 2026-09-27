@@ -277,7 +277,7 @@ async function enterImageScreen() {
 
   const onFound = (e) => {
     if (e.detail && VALID_TARGETS.includes(e.detail.name)) {
-      onImageFound();
+      onImageFound(e.detail.name);
     }
   };
 
@@ -351,17 +351,18 @@ function clearImageTimers() {
   }
 }
 
-function onImageFound() {
+function onImageFound(targetName) {
   if (state.imageFound) return;
   state.imageFound = true;
   clearImageTimers();
   $("#image-status-label").textContent = "인식 성공!";
-  $("#image-banner-text").textContent = "이미지를 찾았어요!";
+  $("#image-banner-text").textContent = "엑스배너를 찾았어요!";
 
   setTimeout(async () => {
     state.imageFrameUrl = await captureArSnapshot();
     teardownArScene();
-    finishGame(true);
+    // finishGame으로 타겟 이름 전달
+    finishGame(true, targetName); 
   }, 400);
 }
 
@@ -401,13 +402,13 @@ function teardownArScene() {
 // ---------------------------------------------------------------------------
 // RESULT SCREEN (수정됨: 성공 시 메인 앱으로 콜백, 실패 시 결과화면 표시)
 // ---------------------------------------------------------------------------
-async function finishGame(success) {
-  // 1. 성공했을 경우: 결과 화면을 띄우지 않고, 바로 메인 앱의 퀴즈로 넘어가는 콜백 실행
+async function finishGame(success, targetName) {
   if (success) {
     if (typeof window.onQuestSuccess === "function") {
-      window.onQuestSuccess();
+      // 메인 앱의 콜백 함수에 어떤 타겟이 인식되었는지 넘겨줍니다.
+      window.onQuestSuccess(targetName); 
     }
-    return; // 함수 종료
+    return; 
   }
 
   // 2. 실패했을 경우: 기존처럼 실패 화면(screen-result) 렌더링
@@ -626,8 +627,7 @@ function bindArEvents() {
   }
 }
 
-window.startTigerQuest = function(targetName, onSuccessCallback) {
-  state.currentTargetName = targetName;
+window.startTigerQuest = function(onSuccessCallback) {
   window.onQuestSuccess = onSuccessCallback;
   
   bindArEvents();

@@ -471,14 +471,20 @@
 
   // 2. 화면 렌더링이 끝나고, 현재 화면이 AR이라면 퀘스트를 시작합니다.
       if (state.screen === "ar" && window.startTigerQuest) {
-          const currentZone = ZONES[state.zone];
+          window.startTigerQuest((recognizedTarget) => {
+              const matchedZoneId = Object.keys(ZONES).find(key => ZONES[key].targetName === recognizedTarget);
+              
+              if (matchedZoneId) {
+                  // 카메라가 실제 인식한 존으로 상태를 덮어씌웁니다.
+                  state.zone = matchedZoneId; 
+              }
 
-      window.startTigerQuest(currentZone.targetName, () => {
-        showToast("AR 인증 성공! 퀴즈를 풀어보세요.");
-        window.stopTigerQuest();
-        navigate("quiz");
-      });
-    }
+              showToast("AR 인증 성공! 퀴즈를 풀어보세요.");              
+              window.stopTigerQuest();
+              navigate("quiz");
+          });
+      }
+
     });
   }
 
