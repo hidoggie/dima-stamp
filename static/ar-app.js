@@ -253,10 +253,18 @@ function buildArSceneMarkup() {
       
       <!-- 시각적 하이라이트가 필요 없다면 image-target 태그들을 생략해도 백그라운드에서 인식 이벤트는 발생합니다. -->
       <!-- 만약 인식된 이미지 위에 초록색 영역을 표시하고 싶다면 4개를 모두 선언해줍니다. -->
-      <xrextras-named-image-target name="G-target"></xrextras-named-image-target>
-      <xrextras-named-image-target name="I-target"></xrextras-named-image-target>
-      <xrextras-named-image-target name="F-target"></xrextras-named-image-target>
-      <xrextras-named-image-target name="T-target"></xrextras-named-image-target>
+      <xrextras-named-image-target name="G-target">
+        <a-plane material="color:#22c55e; opacity:0.4; transparent:true;" width="1" height="1.3" position="0 0 0.01"></a-plane>
+      </xrextras-named-image-target>
+      <xrextras-named-image-target name="I-target">
+        <a-plane material="color:#22c55e; opacity:0.4; transparent:true;" width="1" height="1.3" position="0 0 0.01"></a-plane>
+      </xrextras-named-image-target>
+      <xrextras-named-image-target name="F-target">
+        <a-plane material="color:#22c55e; opacity:0.4; transparent:true;" width="1" height="1.3" position="0 0 0.01"></a-plane>  
+      </xrextras-named-image-target>
+      <xrextras-named-image-target name="T-target">
+        <a-plane material="color:#22c55e; opacity:0.4; transparent:true;" width="1" height="1.3" position="0 0 0.01"></a-plane>
+      </xrextras-named-image-target>
     </a-scene>
   `;
 }

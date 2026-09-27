@@ -475,12 +475,10 @@
               const matchedZoneId = Object.keys(ZONES).find(key => ZONES[key].targetName === recognizedTarget);
               
               if (matchedZoneId) {
+                  state.zone = matchedZoneId;
                   // 이미 스탬프를 획득한 곳인지 검사
                   if (state.stamps.includes(matchedZoneId)) {
-                      // 1. 카메라를 먼저 끕니다.
                       window.stopTigerQuest();
-                      
-                      // 2. 배경 화면을 시작 화면(start)으로 미리 변경해 둡니다.
                       navigate("start"); 
                       
                       // 3. 그 위에 앱 디자인에 맞는 팝업 창을 띄웁니다.
@@ -495,7 +493,6 @@
                   }
 
                   // 획득하지 않은 곳이라면 정상적으로 퀴즈 진입
-                  state.zone = matchedZoneId; 
                   showToast("AR 인증 성공! 퀴즈를 풀어보세요.");              
                   window.stopTigerQuest();
                   navigate("quiz");
@@ -974,81 +971,6 @@ async function handleQuizSubmit() {
         <canvas id="compose-canvas" style="display:none"></canvas>
       </div>
     `;
-  }
-
-  // [기능] AR 씬(카메라) 시작
-  async function startAR() {
-    if (arActive) return;
-    const mount = document.getElementById("ar-mount");
-    if (!mount) return;
-
-    const zone = ZONES[state.zone];
-    const targetName = zone.targetName || "G-target";
-    const targetFile = zone.targetFile || "target.json";
-
-    // 1. 해당 구역의 AR 타겟 JSON을 동적으로 불러옵니다.
-    try {
-        const res = await fetch(`./${targetFile}`);
-        const json = await res.json();
-        
-        const applyConfig = () => {
-            window.XR8.XrController.configure({ imageTargetData: json });
-        };
-        
-        if (window.XR8 && window.XR8.XrController) applyConfig();
-        else window.addEventListener("xrloaded", applyConfig, { once: true });
-    } catch (err) {
-        console.error("AR 타겟 데이터를 불러올 수 없습니다.", err);
-    }
-
-    // 2. A-Frame(AR 씬) HTML을 DOM에 주입하여 카메라 구동
-    mount.innerHTML = `
-      <a-scene
-        xrextras-loading
-        xrextras-runtime-error
-        renderer="colorManagement: true; physicallyBasedRendering: true;"
-        xrweb="disableWorldTracking: true">
-        <a-camera position="0 1 1" raycaster="objects: .cantap" cursor="fuse: false; rayOrigin: mouse;"></a-camera>
-        
-        <xrextras-named-image-target name="${targetName}" id="current-image-target">
-          <!-- 인식되었을 때 반짝 표시할 초록색 하이라이트 -->
-          <a-plane material="color:#22c55e; opacity:0.4; transparent:true;" width="1" height="1.3" position="0 0 0.01"></a-plane>
-        </xrextras-named-image-target>
-      </a-scene>
-    `;
-
-    const sceneEl = mount.querySelector("a-scene");
-    const targetEl = mount.querySelector("#current-image-target");
-
-    // 3. 이미지 인식 성공 이벤트 처리
-    const onFound = (e) => {
-        if (!e.detail || e.detail.name === targetName) {
-            showToast("이미지 인식 성공! 퀴즈를 풀어보세요.");
-            // 인식 성공 즉시 카메라 끄고 퀴즈 화면으로 넘어감
-            stopAR();
-            navigate("quiz");
-        }
-    };
-
-    sceneEl.addEventListener("xrimagefound", onFound);
-    if (targetEl) targetEl.addEventListener("xrextrasfound", onFound);
-
-    arActive = true;
-  }
-
-  // [기능] AR 카메라 완벽 종료 (뒤로가기 방어용 핵심)
-  function stopAR() {
-    if (!arActive) return;
-    try {
-        if (window.XR8 && typeof window.XR8.stop === "function") {
-            window.XR8.stop(); // 8th Wall 카메라 리소스 즉각 반환
-        }
-    } catch(e) {
-        console.warn("XR8 종료 중 오류", e);
-    }
-    const mount = document.getElementById("ar-mount");
-    if (mount) mount.innerHTML = ""; // DOM 청소
-    arActive = false;
   }
 
   window.addEventListener("popstate", (event) => {
