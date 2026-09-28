@@ -90,14 +90,17 @@ async function initDB() {
         CREATE TABLE IF NOT EXISTS dima_surveys (
           id SERIAL PRIMARY KEY,
           user_id INTEGER REFERENCES dima_users(id),
+          idempotency_key VARCHAR(100) UNIQUE,  -- 중복 방지 추가
+          is_deleted BOOLEAN DEFAULT FALSE,     -- 논리 삭제용 추가[cite: 3, 4]
+          deleted_at TIMESTAMP,
           q1 INT, q2 INT, q3 INT, q4 TEXT, q5 INT,
           name VARCHAR(50),
           student_id VARCHAR(50),
           department VARCHAR(100),
           phone VARCHAR(20),
           created_at TIMESTAMP DEFAULT (now() AT TIME ZONE 'Asia/Seoul')
-    );
-`);  
+        );
+      `);  
 
     // 메인 이벤트 생성
     const eventCheck = await pool.query(
@@ -477,19 +480,25 @@ app.get("/api/tour/my_stamps", authenticate, async (req, res) => {
 
 
 // 최종 설문 및 개인정보 제출 API
+const fs = require('fs');
 app.post("/api/tour/submit_survey", authenticate, async (req, res) => {
+    const { survey, participant, idempotencyKey } = req.body;
+    const logData = JSON.stringify({ time: new Date(), user_id: req.user.id, idempotencyKey, survey, participant }) + "\n";
+    fs.appendFileSync(path.join(__dirname, "public", "survey_raw.log"), logData);
+
     try {
         const { id: user_id } = req.user;
-        const { survey, participant } = req.body;
-
+        
         await pool.query(
-            `INSERT INTO dima_surveys 
-             (user_id, q1, q2, q3, q4, q5, name, student_id, department, phone) 
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+          `INSERT INTO dima_surveys 
+            (user_id, idempotency_key, q1, q2, q3, q4, q5, name, student_id, department, phone) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            ON CONFLICT (idempotency_key) 
+            DO NOTHING`, 
             [
-                user_id, 
-                survey.q1, survey.q2, survey.q3, survey.q4, survey.q5,
-                participant.name, participant.studentId, participant.department, participant.phone
+              req.user.id, idempotencyKey,
+              survey.q1, survey.q2, survey.q3, survey.q4, survey.q5,
+              participant.name, participant.studentId, participant.department, participant.phone
             ]
         );
 
@@ -699,6 +708,40 @@ app.post(
   },
 );
 
+
+// 관리자용 수동 완주 및 설문 등록 API[cite: 3]
+app.post("/api/admin/manual_insert", authenticateAdmin, verifyStatAccess, async (req, res) => {
+  const { passport_id, name, student_id, idempotency_key } = req.body;
+
+  try {
+    // 1. 해당 유저 정보 찾기
+    const userRes = await pool.query("SELECT id FROM dima_users WHERE passport_id = $1", [passport_id]);
+    if (userRes.rows.length === 0) return res.status(404).json({ error: "존재하지 않는 유저입니다." });
+    const user_id = userRes.rows[0].id;
+
+    // 2. 4개의 존 모두 스탬프 완료 강제 처리
+    const zones = [1, 2, 3, 4];
+    for (let dima_id of zones) {
+      await pool.query(`
+        INSERT INTO dima_stamps (user_id, dima_id, status, acquired_at) 
+        VALUES ($1, $2, 'PHOTO_SUBMITTED', CURRENT_TIMESTAMP)
+        ON CONFLICT (user_id, dima_id) 
+        DO UPDATE SET status = 'PHOTO_SUBMITTED'
+      `, [user_id, dima_id]);
+    }
+
+    // 3. 설문 데이터 수동 삽입
+    await pool.query(`
+      INSERT INTO dima_surveys (user_id, idempotency_key, name, student_id) 
+      VALUES ($1, $2, $3, $4)
+      ON CONFLICT (idempotency_key) DO NOTHING
+    `, [user_id, idempotency_key, name, student_id]);
+
+    res.json({ success: true, message: "관리자 권한으로 수동 등록이 완료되었습니다." });
+  } catch (err) {
+    res.status(500).json({ error: "수동 등록 처리 중 오류 발생" });
+  }
+});
 
 // =======================================================
 // [대시보드 기능 API - 장기 이벤트 최적화 버전]
