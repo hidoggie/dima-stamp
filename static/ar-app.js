@@ -268,7 +268,9 @@ const targetName = state.currentTargetName || "G-target";
 }
 
 async function enterImageScreen() {
-  $("#image-banner-text").textContent = "스탬프 투어 배너 G, I, F, T 중 하나의 이미지를 비춰주세요";
+  const zoneId = state.currentTargetName ? state.currentTargetName.charAt(0) : "";
+
+  $("#image-banner-text").innerHTML = `<span style="color:#ff8c24; font-weight:900;">[${zoneId} ZONE]</span> 배너를 비춰주세요`;  
   $("#image-status-label").textContent = "이미지 스캔 중...";
   $("#image-timer-bar").style.width = "100%";
   state.imageFound = false;
@@ -315,9 +317,11 @@ async function enterImageScreen() {
   let isReadyToScan = false;
   setTimeout(() => { isReadyToScan = true; }, 1500); 
 
+  const ALL_TARGETS = ["G-target", "I-target", "F-target", "T-target"];
+
   const onFound = (e) => {
-    if (isReadyToScan && e.detail && VALID_TARGETS.includes(e.detail.name)) {
-      onImageFound(e.detail.name);
+    if (isReadyToScan && e.detail && ALL_TARGETS.includes(e.detail.name)) {
+      onImageFound(e.detail.name); // 실제 인식된 배너 이름(예: I-target)을 넘김
     }
   };
 

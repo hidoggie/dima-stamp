@@ -1034,14 +1034,15 @@ img {
 
 .modal h3 {
   margin: 0 0 7px;
-  font-size: 17px;
+  font-size: 19px !important;
+  margin-bottom: 9px !important;
 }
 
 .modal p {
   margin: 0;
   color: var(--muted);
-  font-size: 12px;
-  line-height: 1.6;
+  font-size: 14px !important;
+  line-height: 1.65 !important;
 }
 
 .modal-divider {
@@ -1336,4 +1337,12 @@ html, body {
   justify-content: center !important;
   background: linear-gradient(115deg, #ff8c24, #f00095) !important;
   animation: blink-shadow 1.5s infinite !important;
+}
+#btn-give-up {
+  width: 90% !important;
+  max-width: 400px !important;
+  margin: 0 auto !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
 }

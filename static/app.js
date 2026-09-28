@@ -548,35 +548,43 @@
       if (state.screen === "ar" && window.startTigerQuest) {
         const expectedTargetName = ZONES[state.zone].targetName;
 
-        window.startTigerQuest(
-          expectedTargetName,
-          (recognizedTarget) => {
-            if (recognizedTarget === expectedTargetName) {
-              // 이미 스탬프를 획득한 곳인지 검사
-              if (state.stamps.includes(state.zone)) {
+  if (state.screen === "ar" && window.startTigerQuest) {
+    const expectedTargetName = ZONES[state.zone].targetName;
+
+    // 세 번째 인자로 state.zone을 반드시 유지해야 합니다!
+    window.startTigerQuest(expectedTargetName, (recognizedTarget) => {
+        
+        // 일치할 경우 (정상 로직)
+        if (recognizedTarget === expectedTargetName) {
+            if (state.stamps.includes(state.zone)) {
                 window.stopTigerQuest();
-                navigate("start");
-                showModal(
-                  `<div class="result-icon inline-icon">${icon("check")}</div>
+                navigate("start"); 
+                showModal(`<div class="result-icon inline-icon">${icon("check")}</div>
                   <h2 id="already-title">안내</h2>
                   <p style="margin-top:10px">이미 <strong>${state.zone} Zone</strong> 스탬프를 획득했습니다.<br />다른 곳의 스탬프를 찾아주세요!</p>
                   <div class="button-stack">
                     <button class="btn btn-primary" type="button" data-action="close-modal">확인</button>
-                  </div>`,
-                  "already-title",
-                  "#FF8C24",
-                );
+                  </div>`, "already-title", "#FF8C24");
                 return;
-              }
-
-              // 정상 획득
-              showToast("AR 인증 성공! 퀴즈를 풀어보세요.");
-              window.stopTigerQuest();
-              navigate("quiz");
             }
-          },
-          state.zone,
-        );
+            showToast("AR 인증 성공! 퀴즈를 풀어보세요.");              
+            window.stopTigerQuest();
+            navigate("quiz");
+        } 
+        // 불일치할 경우 (다른 존의 배너를 찍었을 때 튕겨내는 에러 처리 로직)
+        else {
+            const wrongZoneName = recognizedTarget.charAt(0); // I-target -> I
+            window.stopTigerQuest();
+            navigate("start"); // 시작 화면으로 복귀
+            showModal(`<div class="result-icon inline-icon">${icon("close")}</div>
+              <h2 id="wrong-title">인증 실패</h2>
+              <p style="margin-top:10px">현재 도전 중인 <strong>${state.zone} ZONE</strong> 배너가 아닙니다.<br />인식된 배너는 <strong>${wrongZoneName} ZONE</strong>입니다.</p>
+              <div class="button-stack">
+                <button class="btn btn-primary" type="button" data-action="close-modal">확인</button>
+              </div>`, "wrong-title", "#FF4D69");
+        }        
+    }, state.zone); 
+  }
       }
     });
   }
