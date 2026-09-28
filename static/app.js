@@ -159,6 +159,8 @@
   let toastTimer = null;
   let previousFocus = null;
 
+  const DRAFT_KEY = "dima_survey_draft_v1";
+
   function escapeHtml(value = "") {
     return String(value)
       .replaceAll("&", "&amp;")
@@ -685,11 +687,16 @@
   }
 
   function showFinal() {
+    const isOffline = !!localStorage.getItem("dima_offline_queue");
+    const statusText = isOffline ? "<p style='color:#FF4D69; font-weight:bold; margin-top:5px;'>서버 동기화 대기중</p>" : "<p style='color:#22c55e; font-weight:bold; margin-top:5px;'>서버 전송 완료</p>";
+    const receiptBtn = `<button class="btn btn-secondary" style="margin-top:8px" type="button" data-action="download-receipt">확인증 이미지 저장</button>`;
+    
     showModal(
       `<div class="result-icon inline-icon">${icon("check")}</div>
       <span class="eyebrow">COMPLETE</span>
       <h2 id="final-title" style="margin-top:10px">GIFT Festa 참여 완료!</h2>
-      <p>GIFT 스탬프투어와 만족도 조사를 모두 완료했습니다.</p>
+      ${statusText}
+      <p style="margin-top:10px">GIFT 스탬프투어와 만족도 조사를 모두 완료했습니다.</p>
       <div class="benefit-list">
         <article class="benefit-card"><span class="inline-icon">${icon("gift")}</span><div><h3>모바일 상품권</h3><p>입력한 휴대전화번호로 지급될 예정입니다.</p></div></article>
         <article class="benefit-card"><span class="inline-icon">${icon("document")}</span><div><h3>수업협조문</h3><p>스탬프투어를 완료한 재학생은 각 학과사무실로 수업협조문이 발급됩니다.</p></div></article>
@@ -697,7 +704,10 @@
       <div class="modal-divider"></div>
       <p style="color:#fff">참여해 주셔서 감사합니다.</p>
       <div class="final-brand"><em>Miracle DIMA,</em><strong>${giftLetters()} Festa 2026</strong></div>
-      <div class="button-stack"><button class="btn btn-gift" type="button" data-action="confirm-final">확인</button></div>`,
+      <div class="button-stack">
+        <button class="btn btn-gift" type="button" data-action="confirm-final">확인</button>
+        ${receiptBtn}
+      </div>`,
       "final-title",
       "#B044FF",
     );
@@ -899,6 +909,10 @@
       button.disabled = !target.checked;
       button.classList.toggle("btn-gift", target.checked);
     }
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({
+      survey: state.survey,
+      participant: state.participant
+    }));
   });
 
   app.addEventListener("input", (event) => {
@@ -910,6 +924,10 @@
       const formatted = formatPhone(event.target.value);
       if (formatted.includes("-")) event.target.value = formatted;
     }
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({
+      survey: state.survey,
+      participant: state.participant
+    }));
   });
 
   app.addEventListener("submit", (event) => {
@@ -928,27 +946,40 @@
     }
   });
 
-  async function submitFinalData() {
-    try {
-      const res = await fetch("/api/tour/submit_survey", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          survey: state.survey,
-          participant: state.participant,
-        }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        state.isSurveyDone = true;
-        showFinal();
-      } else {
-        showToast("정보 저장에 실패했습니다. 다시 시도해주세요.");
-      }
-    } catch (err) {
-      showToast("서버와 통신할 수 없습니다.");
+async function submitFinalData() {
+  // 멱등성 보장을 위한 고유 키 생성 (없으면 생성)
+  if (!state.idempotencyKey) state.idempotencyKey = crypto.randomUUID();
+
+  const payload = {
+    survey: state.survey,
+    participant: state.participant,
+    idempotencyKey: state.idempotencyKey
+  };
+
+  try {
+    const res = await fetch("/api/tour/submit_survey", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      state.isSurveyDone = true;
+      localStorage.removeItem(DRAFT_KEY); // 성공 시 임시저장 삭제
+      localStorage.removeItem("dima_offline_queue"); // 큐 비우기
+      showFinal();
+    } else {
+      throw new Error("Server error");
     }
+  } catch (err) {
+    // [낙관적 UI 처리] 통신 실패 시 오프라인 큐에 저장 후 강제 완료 처리
+    showToast("네트워크 불안정으로 오프라인 저장되었습니다.");
+    localStorage.setItem("dima_offline_queue", JSON.stringify(payload));
+    state.isSurveyDone = true;
+    showFinal(); // 에러가 나도 완료 화면으로 통과시킴
   }
+}
 
   modalRoot.addEventListener("click", (event) => {
     const control = event.target.closest("[data-action]");
@@ -965,6 +996,27 @@
     }
     if (action === "reset") {
       showToast("스탬프 디자인 상태를 초기화했습니다.");
+    }
+
+    if (action === "download-receipt") {
+      const canvas = document.createElement("canvas");
+      canvas.width = 600; canvas.height = 400;
+      const ctx = canvas.getContext("2d");
+
+  // 배경 및 텍스트 렌더링
+      ctx.fillStyle = "#100f16"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#fff"; ctx.font = "20px sans-serif";
+      ctx.fillText("GIFT Festa 2026 확인증", 30, 50);
+      ctx.fillText(`이름: ${state.participant.name}`, 30, 100);
+      ctx.fillText(`학번: ${state.participant.studentId}`, 30, 140);
+      ctx.fillText(`인증코드: ${state.idempotencyKey.split('-')[0]}`, 30, 180);
+      ctx.fillText(`저장일시: ${new Date().toLocaleString()}`, 30, 220);
+
+  // 다운로드 트리거
+      const link = document.createElement("a");
+      link.download = "GIFT_완료확인증.png";
+      link.href = canvas.toDataURL("image/png");
+      link.click();
     }
   });
 
@@ -1125,8 +1177,14 @@
   );
 
   async function initApp() {
+    const savedDraft = localStorage.getItem(DRAFT_KEY);
+    if (savedDraft) {
+      const parsed = JSON.parse(savedDraft);
+      state.survey = parsed.survey || {};
+      state.participant = parsed.participant || {};
+    }    
+
     try {
-      // 1. 유저 세션 시작 (여권번호 발급/확인)
       await fetch("/api/tour/start", { method: "POST" });
 
       // 2. 획득한 스탬프 불러오기
@@ -1151,6 +1209,30 @@
       render();
     }
   }
+
+  window.addEventListener('online', async () => {
+  const queueData = localStorage.getItem("dima_offline_queue");
+  if (queueData) {
+    try {
+      await fetch("/api/tour/submit_survey", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: queueData,
+      });
+      localStorage.removeItem("dima_offline_queue");
+    } catch(e) {
+      // 다시 실패하면 큐에 유지
+    }
+  }
+});
+
+window.addEventListener('beforeunload', (event) => {
+  // 완료하지 않았는데 로컬에 임시 데이터가 있다면 경고
+  if (!state.isSurveyDone && localStorage.getItem(DRAFT_KEY)) {
+    event.preventDefault();
+    event.returnValue = '작성 중인 설문 내용이 있습니다. 정말 나가시겠습니까?';
+  }
+});
 
   initApp();
 })();
