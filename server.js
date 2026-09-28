@@ -480,7 +480,6 @@ app.get("/api/tour/my_stamps", authenticate, async (req, res) => {
 
 
 // 최종 설문 및 개인정보 제출 API
-const fs = require('fs');
 app.post("/api/tour/submit_survey", authenticate, async (req, res) => {
     const { survey, participant, idempotencyKey } = req.body;
     const logData = JSON.stringify({ time: new Date(), user_id: req.user.id, idempotencyKey, survey, participant }) + "\n";
