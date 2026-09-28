@@ -504,7 +504,6 @@
           <span>개인정보 수집·이용에 동의합니다.</span>
         </label>
         <button class="btn ${state.consent ? "btn-gift" : ""}" id="finish-button" type="submit" ${state.consent ? "" : "disabled"}>참여 완료</button>
-        <p class="note">※ 체크하지 않은 경우 완료 버튼 비활성화.</p>
       </form>
     </section>`;
   }
@@ -1196,7 +1195,7 @@ async function submitFinalData() {
 
   async function initApp() {
     flushOfflineQueue();
-    
+
     const savedDraft = localStorage.getItem(DRAFT_KEY);
     if (savedDraft) {
       const parsed = JSON.parse(savedDraft);
