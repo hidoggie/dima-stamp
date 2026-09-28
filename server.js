@@ -468,8 +468,12 @@ app.get("/api/tour/my_stamps", authenticate, async (req, res) => {
         `,
       [user_id],
     );
+    const surveyRes = await pool.query(
+      `SELECT id FROM dima_surveys WHERE user_id = $1`, [user_id]
+    );
+    const isSurveyDone = surveyRes.rowCount > 0;
 
-    res.json({ success: true, stamps: stampRes.rows });
+    res.json({ success: true, stamps: stampRes.rows, isSurveyDone });
   } catch (err) {
     console.error(err);
     res
@@ -487,6 +491,18 @@ app.post("/api/tour/submit_survey", authenticate, async (req, res) => {
 
     try {
         const { id: user_id } = req.user;
+
+        const checkRes = await pool.query("SELECT idempotency_key FROM dima_surveys WHERE user_id = $1", [user_id]);
+        
+        if (checkRes.rowCount > 0) {
+            // 오프라인 큐가 재시도한 동일한 요청이면 성공(200) 처리하여 큐를 비우게 함
+            if (checkRes.rows[0].idempotency_key === idempotencyKey) {
+                return res.json({ success: true, message: "이미 저장되었습니다." });
+            } else {
+                // 캐시를 지우고 아예 새로 제출한 경우 -> 명시적 거부 플래그 반환
+                return res.json({ success: false, already_submitted: true, error: "이미 설문을 완료하셨습니다." });
+            }
+        }
         
         await pool.query(
           `INSERT INTO dima_surveys 
