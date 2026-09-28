@@ -89,9 +89,9 @@ async function initDB() {
       await pool.query(`
         CREATE TABLE IF NOT EXISTS dima_surveys (
           id SERIAL PRIMARY KEY,
-          user_id INTEGER REFERENCES dima_users(id),
-          idempotency_key VARCHAR(100) UNIQUE,  -- 중복 방지 추가
-          is_deleted BOOLEAN DEFAULT FALSE,     -- 논리 삭제용 추가[cite: 3, 4]
+          user_id INTEGER REFERENCES dima_users(id) UNIQUE,
+          idempotency_key VARCHAR(100),  
+          is_deleted BOOLEAN DEFAULT FALSE,     
           deleted_at TIMESTAMP,
           q1 INT, q2 INT, q3 INT, q4 TEXT, q5 INT,
           name VARCHAR(50),
@@ -492,7 +492,7 @@ app.post("/api/tour/submit_survey", authenticate, async (req, res) => {
           `INSERT INTO dima_surveys 
             (user_id, idempotency_key, q1, q2, q3, q4, q5, name, student_id, department, phone) 
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-            ON CONFLICT (idempotency_key) 
+            ON CONFLICT (user_id) 
             DO NOTHING`, 
             [
               req.user.id, idempotencyKey,
