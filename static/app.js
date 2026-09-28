@@ -981,11 +981,19 @@ async function submitFinalData() {
     });
     const data = await res.json();
 
-    if (data.success) {
+    if (data.success || data.already_submitted) {
+      localStorage.removeItem("dima_offline_queue"); 
       state.isSurveyDone = true;
-      localStorage.removeItem(DRAFT_KEY); // 성공 시 임시저장 삭제
-      localStorage.removeItem("dima_offline_queue"); // 큐 비우기
-      showFinal();
+      
+      const syncStatusEl = document.querySelector("#sync-status");
+      if (syncStatusEl) {
+        syncStatusEl.innerHTML = "서버 전송 완료";
+        syncStatusEl.style.color = "#22c55e";
+      }
+      
+      if (data.already_submitted) {
+        showToast("이미 제출된 설문 내역이 있어 기존 기록이 유지됩니다.");
+      }
     } else {
       throw new Error("Server error");
     }
@@ -1211,7 +1219,6 @@ async function submitFinalData() {
       const data = await res.json();
 
       if (data.success) {
-        // 서버에서 PHOTO_SUBMITTED 상태인 것들만 맵핑
         const dbStamps = data.stamps
           .filter((s) => s.status === "PHOTO_SUBMITTED")
           .map((s) => {
@@ -1221,6 +1228,11 @@ async function submitFinalData() {
             if (s.dima_id === 4) return "T";
           });
         state.stamps = dbStamps;
+        
+        if (data.isSurveyDone) {
+          state.isSurveyDone = true; 
+        }
+
       }
     } catch (err) {
       console.error("앱 초기화 오류", err);
