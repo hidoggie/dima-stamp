@@ -651,14 +651,19 @@ function bindArEvents() {
   }
 }
 
-window.startTigerQuest = function(expectedTarget, onSuccessCallback) {
-  state.currentTargetName = expectedTarget; // 선택된 타겟 이름 저장
+window.startTigerQuest = function(expectedTarget, onSuccessCallback, zoneId) {
+  state.currentTargetName = expectedTarget;
   window.onQuestSuccess = onSuccessCallback;
-  
+
+  const introTitle = document.querySelector("#screen-intro h1");
+  if (introTitle && zoneId) {
+      introTitle.innerHTML = `<span style="color:#e5007f;">[${zoneId} ZONE]</span><br/>엑스배너 이미지를 찾아라!`;
+  }
+
   bindArEvents();
   resetGameState();
   showScreen("intro");
-};
+}
 
 // 메인 앱에서 뒤로가기를 누르거나 화면을 벗어날 때 호출할 함수 (카메라 완벽 해제)
 window.stopTigerQuest = function() {

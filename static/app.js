@@ -11,13 +11,14 @@
     G: {
       id: "G",
       dima_id: 1,
-      targetName: "G-target",       
+      targetName: "G-target",
       targetFile: "target.json",
       name: "Go first",
       meaning: "개척과 도전",
       color: "#E5007F",
       stamp: "assets/stamps/g.png",
-      question: "먼저 시작하고 새로운 가능성에 도전하는 DIMA의 정신, G는 무엇일까요?",
+      question:
+        "먼저 시작하고 새로운 가능성에 도전하는 DIMA의 정신, G는 무엇일까요?",
       options: ["Go first", "Grow future", "Great passion", "Global challenge"],
       answer: 0,
       correctTitle: "G = Go first",
@@ -29,17 +30,24 @@
     I: {
       id: "I",
       dima_id: 2,
-      targetName: "I-target",       
+      targetName: "I-target",
       targetFile: "target.json",
       name: "Intensive Practice",
       meaning: "깊이 있는 숙련",
       color: "#890C84",
       stamp: "assets/stamps/i.png",
-      question: "몰입과 반복을 통해 전문성을 깊게 만드는 DIMA의 정신, I는 무엇일까요?",
-      options: ["Inspire mind", "Intensive Practice", "Imagine creation", "Infinite potential"],
+      question:
+        "몰입과 반복을 통해 전문성을 깊게 만드는 DIMA의 정신, I는 무엇일까요?",
+      options: [
+        "Inspire mind",
+        "Intensive Practice",
+        "Imagine creation",
+        "Infinite potential",
+      ],
       answer: 1,
       correctTitle: "I = Intensive Practice",
-      correctBody: "끊임없는 연습과 몰입으로 실력을 깊이 있게 쌓아가는 DIMA의 정신입니다.",
+      correctBody:
+        "끊임없는 연습과 몰입으로 실력을 깊이 있게 쌓아가는 DIMA의 정신입니다.",
       wrong: "조금만 더 생각해보세요. 다시 도전!",
       stampTitle: "I Stamp 획득!",
       stampBody: "당신의 두 번째 GIFT, Intensive Practice",
@@ -47,17 +55,24 @@
     F: {
       id: "F",
       dima_id: 3,
-      targetName: "F-target",       
+      targetName: "F-target",
       targetFile: "target.json",
       name: "Fearless of failure",
       meaning: "실패를 두려워하지 않음",
       color: "#381F87",
       stamp: "assets/stamps/f.png",
-      question: "실패를 두려워하지 않고 다시 도전하는 DIMA의 정신, F는 무엇일까요?",
-      options: ["Future making", "Free expression", "First attempt", "Fearless of failure"],
+      question:
+        "실패를 두려워하지 않고 다시 도전하는 DIMA의 정신, F는 무엇일까요?",
+      options: [
+        "Future making",
+        "Free expression",
+        "First attempt",
+        "Fearless of failure",
+      ],
       answer: 3,
       correctTitle: "F = Fearless of failure",
-      correctBody: "실패를 성장의 과정으로 받아들이고 다시 도전하는 DIMA의 정신입니다.",
+      correctBody:
+        "실패를 성장의 과정으로 받아들이고 다시 도전하는 DIMA의 정신입니다.",
       wrong: "실패를 두려워하지 말고, 다시 도전해보세요!",
       stampTitle: "F Stamp 획득!",
       stampBody: "당신의 세 번째 GIFT, Fearless of failure",
@@ -65,17 +80,19 @@
     T: {
       id: "T",
       dima_id: 4,
-      targetName: "T-target",       
+      targetName: "T-target",
       targetFile: "target.json",
       name: "Teamwork",
       meaning: "협력과 소통",
       color: "#F18E29",
       stamp: "assets/stamps/t.png",
-      question: "서로의 재능을 연결해 더 큰 결과를 만들어내는 DIMA의 정신, T는 무엇일까요?",
+      question:
+        "서로의 재능을 연결해 더 큰 결과를 만들어내는 DIMA의 정신, T는 무엇일까요?",
       options: ["True artist", "Try again", "Teamwork", "Talent power"],
       answer: 2,
       correctTitle: "T = Teamwork",
-      correctBody: "서로 다른 재능과 역량을 연결해 더 큰 성과를 만드는 DIMA의 정신입니다.",
+      correctBody:
+        "서로 다른 재능과 역량을 연결해 더 큰 성과를 만드는 DIMA의 정신입니다.",
       wrong: "함께 생각하면 답이 보입니다. 다시 도전해보세요!",
       stampTitle: "T Stamp 획득!",
       stampBody: "당신의 네 번째 GIFT, Teamwork",
@@ -83,9 +100,32 @@
   };
 
   const ORDER = ["G", "I", "F", "T"];
-  const SURVEY_OPTIONS = ["매우 그렇다", "그렇다", "보통이다", "그렇지 않다", "전혀 그렇지 않다"];
-  const SATISFACTION_OPTIONS = ["매우 만족", "만족", "보통", "불만족", "매우 불만족"];
-  const VALID_SCREENS = ["start", "ar", "quiz", "stampbook", "complete", "survey1", "survey2", "participant", "privacy", "done"];
+  const SURVEY_OPTIONS = [
+    "매우 그렇다",
+    "그렇다",
+    "보통이다",
+    "그렇지 않다",
+    "전혀 그렇지 않다",
+  ];
+  const SATISFACTION_OPTIONS = [
+    "매우 만족",
+    "만족",
+    "보통",
+    "불만족",
+    "매우 불만족",
+  ];
+  const VALID_SCREENS = [
+    "start",
+    "ar",
+    "quiz",
+    "stampbook",
+    "complete",
+    "survey1",
+    "survey2",
+    "participant",
+    "privacy",
+    "done",
+  ];
   const BACK = {
     ar: "start",
     quiz: "start",
@@ -99,7 +139,9 @@
   };
 
   const params = new URLSearchParams(location.search);
-  const previewScreen = VALID_SCREENS.includes(params.get("screen")) ? params.get("screen") : "start";
+  const previewScreen = VALID_SCREENS.includes(params.get("screen"))
+    ? params.get("screen")
+    : "start";
   const previewZone = ZONES[String(params.get("zone") || "").toUpperCase()]
     ? String(params.get("zone")).toUpperCase()
     : "G";
@@ -112,6 +154,7 @@
     survey: {},
     participant: {},
     consent: false,
+    isSurveyDone: false,
   };
   let toastTimer = null;
   let previousFocus = null;
@@ -128,15 +171,22 @@
   function icon(name) {
     const icons = {
       back: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>',
-      close: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>',
+      close:
+        '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>',
       help: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 9a2.8 2.8 0 1 1 4.6 2.2c-1.4.9-2.1 1.5-2.1 3.1M12 18h.01"/></svg>',
-      arrow: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>',
-      check: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>',
+      arrow:
+        '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>',
+      check:
+        '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>',
       gift: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10h16v11H4ZM2 6h20v4H2ZM12 6v15"/><path d="M12 6H7.8C5.5 6 5 2.5 7.5 2.5 10 2.5 12 6 12 6Zm0 0h4.2c2.3 0 2.8-3.5.3-3.5C14 2.5 12 6 12 6Z"/></svg>',
-      document: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6Z"/><path d="M14 3v5h5M9 12h6M9 16h6"/></svg>',
-      phone: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M10 18h4"/></svg>',
-      target: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>',
-      clock: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v6l4 2"/></svg>',
+      document:
+        '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6Z"/><path d="M14 3v5h5M9 12h6M9 16h6"/></svg>',
+      phone:
+        '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M10 18h4"/></svg>',
+      target:
+        '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>',
+      clock:
+        '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v6l4 2"/></svg>',
     };
     return icons[name] || "";
   }
@@ -151,29 +201,29 @@
 
   function renderHeader() {
     if (state.screen === "ar" || state.screen === "start") {
-        header.innerHTML = ""; 
-        header.style.display = "none"; // CSS에서 자리를 차지하지 않도록 숨김처리
-        
-        // 헤더가 없어지면서 콘텐츠가 기기 상단(노치)에 바짝 붙는 것을 방지하기 위해 상단 여백 추가
-        app.style.paddingTop = "calc(20px + env(safe-area-inset-top))"; 
-        return;
+      header.innerHTML = "";
+      header.style.display = "none"; // CSS에서 자리를 차지하지 않도록 숨김처리
+
+      // 헤더가 없어지면서 콘텐츠가 기기 상단(노치)에 바짝 붙는 것을 방지하기 위해 상단 여백 추가
+      app.style.paddingTop = "calc(20px + env(safe-area-inset-top))";
+      return;
     }
-    
+
     header.style.display = ""; // 숨겼던 헤더를 다시 활성화
     app.style.paddingTop = ""; // 메인 영역 여백도 원래대로 복구
 
     // 2. 메인 시작 화면일 때는 양쪽 버튼 자리를 모두 빈 공간으로 둡니다.
     if (state.screen === "start") {
-        header.innerHTML = `
+      header.innerHTML = `
           <div class="header-row">
             <span class="header-placeholder" aria-hidden="true"></span>
             <div class="brand">DIMA CONNECT</div>
             <span class="header-placeholder" aria-hidden="true"></span>
           </div>`;
-    } 
+    }
     // 3. 그 외 화면(퀴즈, 스탬프북 등)일 때는 뒤로가기 및 홈 버튼을 표시합니다.
     else {
-        header.innerHTML = `
+      header.innerHTML = `
           <div class="header-row">
             <button class="header-action" type="button" data-action="back" aria-label="이전 화면">${icon("back")}</button>
             <div class="brand">DIMA CONNECT</div>
@@ -194,7 +244,7 @@
   function zoneCard(id) {
     const zone = ZONES[id];
     const collected = state.stamps.includes(id); // 스탬프 획득 여부 확인
-    
+
     // collected가 true일 경우 버튼에 'disabled' 속성을 추가하여 터치를 막습니다.
     return `<button class="zone-card ${collected ? "collected" : ""}" type="button" data-action="zone" data-zone="${id}" style="${zoneStyle(zone)}" ${collected ? "disabled" : ""}>
       <img src="${zone.stamp}" alt="${id} 스탬프 ${collected ? "획득 완료" : "미획득"}" />
@@ -217,10 +267,12 @@
       <p class="note" style="margin-top: 10px; text-align: center;">도전할 Zone을 직접 선택해주세요.</p>
       <div class="zone-grid" aria-label="GIFT Zone 선택">${ORDER.map(zoneCard).join("")}</div>
       <div class="button-stack">
-        ${allComplete ? 
-          `<button class="btn btn-gift" type="button" data-action="complete">
+        ${
+          allComplete
+            ? `<button class="btn btn-gift" type="button" data-action="complete">
             GIFT 완주 화면 보기 ${icon("arrow")}
-          </button>` : ''
+          </button>`
+            : ""
         }
         <button class="btn" type="button" data-action="stampbook">내 스탬프북 보기</button>
       </div>
@@ -240,10 +292,17 @@
           <h2><span class="q-number">Q1.</span>${escapeHtml(zone.question)}</h2>
         </div>
         <div class="option-list" role="radiogroup" aria-label="${zone.id} Zone 퀴즈 선택지">
-          ${zone.options.map((option, index) => `<label class="option ${state.selectedAnswer === index ? "selected" : ""}">
+          ${zone.options
+            .map(
+              (
+                option,
+                index,
+              ) => `<label class="option ${state.selectedAnswer === index ? "selected" : ""}">
             <input type="radio" name="answer" value="${index}" ${state.selectedAnswer === index ? "checked" : ""} />
             <span class="option-index">${index + 1}</span><span>${escapeHtml(option)}</span>
-          </label>`).join("")}
+          </label>`,
+            )
+            .join("")}
         </div>
         <div class="button-stack">
           <button class="btn btn-zone" id="quiz-submit" type="submit" ${state.selectedAnswer === undefined ? "disabled" : ""}>정답 확인</button>
@@ -291,6 +350,10 @@
   }
 
   function renderComplete() {
+    const surveyBtnHtml = state.isSurveyDone
+      ? `<button class="btn" type="button" disabled>설문 참여 완료</button>`
+      : `<button class="btn btn-gift" type="button" data-action="survey">만족도 조사하고 혜택 받기 ${icon("arrow")}</button>`;
+
     return `<section class="screen center" aria-labelledby="complete-title">
       <div class="complete-check inline-icon">${icon("check")}</div>
       <div class="complete-script" aria-label="G I F T COMPLETE">
@@ -304,20 +367,22 @@
       <p class="lead" style="margin-top:14px">한 해의 배움과 도전이 기적 같은 결실이 되는 순간,</p>
       <div class="miracle">Miracle DIMA</div>
       <div class="button-stack">
-        <button class="btn btn-gift" type="button" data-action="survey">만족도 조사하고 혜택 받기 ${icon("arrow")}</button>
+        ${surveyBtnHtml}
       </div>
       <p class="note">만족도 조사 완료 후 모바일 상품권 지급 및 수업협조문 신청이 가능합니다.</p>
     </section>`;
   }
 
   function surveyOptions(name, options, selected) {
-    return `<div class="survey-options">${options.map((option, index) => {
-      const value = index + 1;
-      return `<label class="survey-option ${Number(selected) === value ? "selected" : ""}">
+    return `<div class="survey-options">${options
+      .map((option, index) => {
+        const value = index + 1;
+        return `<label class="survey-option ${Number(selected) === value ? "selected" : ""}">
         <input type="radio" name="${name}" value="${value}" ${Number(selected) === value ? "checked" : ""} />
         <span class="radio-ui" aria-hidden="true"></span><span>${value}. ${option}</span>
       </label>`;
-    }).join("")}</div>`;
+      })
+      .join("")}</div>`;
   }
 
   function renderSurvey1() {
@@ -372,7 +437,14 @@
     </section>`;
   }
 
-  function field(name, label, placeholder, type = "text", autocomplete = "off", inputmode = "text") {
+  function field(
+    name,
+    label,
+    placeholder,
+    type = "text",
+    autocomplete = "off",
+    inputmode = "text",
+  ) {
     const value = state.participant[name] || "";
     return `<div class="glass-card field-card">
       <label class="field-label" for="${name}">${label} <span class="required" aria-label="필수">*</span></label>
@@ -461,7 +533,7 @@
 
   function render() {
     if (state.screen !== "ar" && window.stopTigerQuest) {
-        window.stopTigerQuest();
+      window.stopTigerQuest();
     }
 
     closeModal(false);
@@ -472,39 +544,40 @@
       app.focus({ preventScroll: true });
       window.scrollTo({ top: 0, behavior: "auto" });
 
-  // 2. 화면 렌더링이 끝나고, 현재 화면이 AR이라면 퀘스트를 시작합니다.
-if (state.screen === "ar" && window.startTigerQuest) {
-    
-    // 현재 유저가 선택해서 들어온 Zone의 타겟 이름 (예: "F-target")
-    const expectedTargetName = ZONES[state.zone].targetName;
+      // 2. 화면 렌더링이 끝나고, 현재 화면이 AR이라면 퀘스트를 시작합니다.
+      if (state.screen === "ar" && window.startTigerQuest) {
+        const expectedTargetName = ZONES[state.zone].targetName;
 
-    // startTigerQuest의 첫 번째 인자로 해당 타겟 이름을 넘겨줍니다.
-    window.startTigerQuest(expectedTargetName, (recognizedTarget) => {
-        
-        // (단일 타겟이므로 무조건 일치하지만, 안전을 위해 검증)
-        if (recognizedTarget === expectedTargetName) {
-            
-            // 이미 스탬프를 획득한 곳인지 검사
-            if (state.stamps.includes(state.zone)) {
+        window.startTigerQuest(
+          expectedTargetName,
+          (recognizedTarget) => {
+            if (recognizedTarget === expectedTargetName) {
+              // 이미 스탬프를 획득한 곳인지 검사
+              if (state.stamps.includes(state.zone)) {
                 window.stopTigerQuest();
-                navigate("start"); 
-                showModal(`<div class="result-icon inline-icon">${icon("check")}</div>
+                navigate("start");
+                showModal(
+                  `<div class="result-icon inline-icon">${icon("check")}</div>
                   <h2 id="already-title">안내</h2>
                   <p style="margin-top:10px">이미 <strong>${state.zone} Zone</strong> 스탬프를 획득했습니다.<br />다른 곳의 스탬프를 찾아주세요!</p>
                   <div class="button-stack">
                     <button class="btn btn-primary" type="button" data-action="close-modal">확인</button>
-                  </div>`, "already-title", "#FF8C24");
+                  </div>`,
+                  "already-title",
+                  "#FF8C24",
+                );
                 return;
+              }
+
+              // 정상 획득
+              showToast("AR 인증 성공! 퀴즈를 풀어보세요.");
+              window.stopTigerQuest();
+              navigate("quiz");
             }
-
-            // 정상 획득
-            showToast("AR 인증 성공! 퀴즈를 풀어보세요.");              
-            window.stopTigerQuest();
-            navigate("quiz");
-        }
-    });
-}
-
+          },
+          state.zone,
+        );
+      }
     });
   }
 
@@ -522,47 +595,48 @@ if (state.screen === "ar" && window.startTigerQuest) {
     return ORDER.find((id) => !state.stamps.includes(id)) || "G";
   }
 
-async function handleQuizSubmit() {
+  async function handleQuizSubmit() {
     const zone = ZONES[state.zone];
     const submitBtn = document.querySelector("#quiz-submit");
 
     if (state.selectedAnswer === zone.answer) {
-        if (!state.stamps.includes(zone.id)) {
-            try {
-                // API 통신 시작 전 버튼 비활성화 (중복 클릭 방지)
-                if (submitBtn) submitBtn.disabled = true;
+      if (!state.stamps.includes(zone.id)) {
+        try {
+          // API 통신 시작 전 버튼 비활성화 (중복 클릭 방지)
+          if (submitBtn) submitBtn.disabled = true;
 
-                // 정답을 맞추면 최종 스탬프(PHOTO_SUBMITTED 상태) 획득 API 호출
-                const res = await fetch("/api/tour/photo_upload", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ dima_id: zone.dima_id })
-                });
-                const data = await res.json();
+          // 정답을 맞추면 최종 스탬프(PHOTO_SUBMITTED 상태) 획득 API 호출
+          const res = await fetch("/api/tour/photo_upload", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ dima_id: zone.dima_id }),
+          });
+          const data = await res.json();
 
-                if (data.success) {
-                    state.stamps.push(zone.id); // UI 반영
-                    showCorrect(zone);
-                } else {
-                    showToast("스탬프 발급 중 오류가 발생했습니다.");
-                }
-            } catch (err) {
-                showToast("네트워크 오류입니다.");
-            } finally {
-                // 통신이 완료되면 응답 결과와 상관없이 버튼 다시 활성화
-                if (submitBtn) submitBtn.disabled = false;
-            }
-        } else {
-            // 이미 획득한 경우
+          if (data.success) {
+            state.stamps.push(zone.id); // UI 반영
             showCorrect(zone);
+          } else {
+            showToast("스탬프 발급 중 오류가 발생했습니다.");
+          }
+        } catch (err) {
+          showToast("네트워크 오류입니다.");
+        } finally {
+          // 통신이 완료되면 응답 결과와 상관없이 버튼 다시 활성화
+          if (submitBtn) submitBtn.disabled = false;
         }
+      } else {
+        // 이미 획득한 경우
+        showCorrect(zone);
+      }
     } else {
-        showWrong(zone);
+      showWrong(zone);
     }
-}
+  }
 
   function showCorrect(zone) {
-    showModal(`<div class="result-icon inline-icon">${icon("check")}</div>
+    showModal(
+      `<div class="result-icon inline-icon">${icon("check")}</div>
       <h2 id="result-title">정답입니다!</h2>
       <h3 style="color:${zone.color}">${escapeHtml(zone.correctTitle)}</h3>
       <p><strong style="color:#fff">${escapeHtml(zone.meaning)}</strong><br />${escapeHtml(zone.correctBody)}</p>
@@ -571,30 +645,40 @@ async function handleQuizSubmit() {
       <h3 style="color:${zone.color}">${escapeHtml(zone.stampTitle)}</h3>
       <p>${escapeHtml(zone.stampBody)}</p>
       <div class="button-stack"><button class="btn btn-zone" type="button" data-action="after-stamp" style="${zoneStyle(zone)}">다음으로</button></div>`,
-    "result-title", zone.color);
+      "result-title",
+      zone.color,
+    );
   }
 
   function showWrong(zone) {
-    showModal(`<div class="result-icon inline-icon">${icon("close")}</div>
+    showModal(
+      `<div class="result-icon inline-icon">${icon("close")}</div>
       <h2 id="result-title">다시 도전!</h2>
       <p>${escapeHtml(zone.wrong)}</p>
       <div class="button-stack"><button class="btn btn-zone" type="button" data-action="close-modal" style="${zoneStyle(zone)}">다시 도전하기</button></div>`,
-    "result-title", "#FF4D69");
+      "result-title",
+      "#FF4D69",
+    );
   }
 
   function showHelp() {
-    showModal(`<h2 id="help-title">HTML 디자인 페이지 안내</h2>
+    showModal(
+      `<h2 id="help-title">HTML 디자인 페이지 안내</h2>
       <p>이 버전은 시작, 퀴즈, 스탬프북, 완주, 설문, 참여자 정보, 개인정보 동의와 최종 팝업 디자인만 제공합니다.</p>
       <div class="modal-divider"></div>
       <p>Zone 카드에서 퀴즈를 선택하고 정답을 맞히면 스탬프북 화면을 순서대로 확인할 수 있습니다.</p>
       <div class="button-stack">
         <button class="btn btn-primary" type="button" data-action="close-modal">확인</button>
         <button class="btn" type="button" data-action="reset">스탬프 디자인 초기화</button>
-      </div>`, "help-title", "#8E55FF");
+      </div>`,
+      "help-title",
+      "#8E55FF",
+    );
   }
 
   function showFinal() {
-    showModal(`<div class="result-icon inline-icon">${icon("check")}</div>
+    showModal(
+      `<div class="result-icon inline-icon">${icon("check")}</div>
       <span class="eyebrow">COMPLETE</span>
       <h2 id="final-title" style="margin-top:10px">GIFT Festa 참여 완료!</h2>
       <p>GIFT 스탬프투어와 만족도 조사를 모두 완료했습니다.</p>
@@ -606,10 +690,17 @@ async function handleQuizSubmit() {
       <p style="color:#fff">참여해 주셔서 감사합니다.</p>
       <div class="final-brand"><em>Miracle DIMA,</em><strong>${giftLetters()} Festa 2026</strong></div>
       <div class="button-stack"><button class="btn btn-gift" type="button" data-action="confirm-final">확인</button></div>`,
-    "final-title", "#B044FF");
+      "final-title",
+      "#B044FF",
+    );
   }
 
-  function showModal(content, labelledBy, accent = "#9656FF", dismissible = true) {
+  function showModal(
+    content,
+    labelledBy,
+    accent = "#9656FF",
+    dismissible = true,
+  ) {
     previousFocus = document.activeElement;
     modalRoot.innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-labelledby="${labelledBy}" style="--modal-accent:${accent}">
       ${dismissible ? `<button class="modal-close" type="button" data-action="close-modal" aria-label="팝업 닫기">${icon("close")}</button>` : ""}
@@ -672,8 +763,10 @@ async function handleQuizSubmit() {
 
   function formatPhone(value) {
     const digits = value.replace(/\D/g, "").slice(0, 11);
-    if (digits.length === 11) return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
-    if (digits.length === 10) return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
+    if (digits.length === 11)
+      return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
+    if (digits.length === 10)
+      return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
     return value;
   }
 
@@ -685,7 +778,12 @@ async function handleQuizSubmit() {
       department: String(data.get("department") || "").trim(),
       phone: formatPhone(String(data.get("phone") || "").trim()),
     };
-    if (participant.name.length < 2 || participant.department.length < 2 || !/^[0-9A-Za-z-]{5,15}$/.test(participant.studentId) || !/^01[016789]-\d{3,4}-\d{4}$/.test(participant.phone)) {
+    if (
+      participant.name.length < 2 ||
+      participant.department.length < 2 ||
+      !/^[0-9A-Za-z-]{5,15}$/.test(participant.studentId) ||
+      !/^01[016789]-\d{3,4}-\d{4}$/.test(participant.phone)
+    ) {
       showError("#participant-error", "모든 필수 정보를 정확히 입력해 주세요.");
       return;
     }
@@ -695,46 +793,49 @@ async function handleQuizSubmit() {
 
   async function checkGPSAndEnterZone(id) {
     if (!ZONES[id]) return;
-    
+
     // 이미 획득한 곳이면 그냥 퀴즈 화면 열기(복습용)
     if (state.stamps.includes(id)) {
-        state.zone = id;
-        state.selectedAnswer = undefined;
-        navigate("quiz");
-        return;
+      state.zone = id;
+      state.selectedAnswer = undefined;
+      navigate("quiz");
+      return;
     }
 
     if (!navigator.geolocation) {
-        showToast("GPS를 지원하지 않는 기기입니다.");
-        return;
+      showToast("GPS를 지원하지 않는 기기입니다.");
+      return;
     }
 
     showToast("위치를 확인 중입니다...");
-    navigator.geolocation.getCurrentPosition(async (pos) => {
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
         const { latitude, longitude } = pos.coords;
         const dima_id = ZONES[id].dima_id;
 
         try {
-            const res = await fetch("/api/tour/arrive", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ dima_id, lat: latitude, lng: longitude })
-            });
-            const data = await res.json();
+          const res = await fetch("/api/tour/arrive", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ dima_id, lat: latitude, lng: longitude }),
+          });
+          const data = await res.json();
 
-            if (data.success) {
-                // GPS 통과 시 -> AR 화면으로 진입!
-                state.zone = id;
-                navigate("ar"); 
-            } else {
-                showToast(data.error || "위치 인증에 실패했습니다.");
-            }
+          if (data.success) {
+            // GPS 통과 시 -> AR 화면으로 진입!
+            state.zone = id;
+            navigate("ar");
+          } else {
+            showToast(data.error || "위치 인증에 실패했습니다.");
+          }
         } catch (err) {
-            showToast("서버와 통신할 수 없습니다.");
+          showToast("서버와 통신할 수 없습니다.");
         }
-    }, (err) => {
+      },
+      (err) => {
         showToast("GPS 위치 권한을 허용해주세요.");
-    });
+      },
+    );
   }
 
   app.addEventListener("click", (event) => {
@@ -745,7 +846,11 @@ async function handleQuizSubmit() {
     if (action === "home") navigate("start", true);
     if (action === "back") navigate(BACK[state.screen] || "start", true);
     if (action === "zone") checkGPSAndEnterZone(control.dataset.zone);
-    if (action === "start") state.stamps.length === 4 ? navigate("complete") : checkGPSAndEnterZone(nextIncompleteZone());    if (action === "stampbook") navigate("stampbook");
+    if (action === "start")
+      state.stamps.length === 4
+        ? navigate("complete")
+        : checkGPSAndEnterZone(nextIncompleteZone());
+    if (action === "stampbook") navigate("stampbook");
     if (action === "next-zone") checkGPSAndEnterZone(nextIncompleteZone());
     if (action === "complete") navigate("complete");
     if (action === "survey") navigate("survey1");
@@ -764,17 +869,24 @@ async function handleQuizSubmit() {
     const target = event.target;
     if (target.matches('input[name="answer"]')) {
       state.selectedAnswer = Number(target.value);
-      document.querySelectorAll(".option").forEach((option) => option.classList.remove("selected"));
+      document
+        .querySelectorAll(".option")
+        .forEach((option) => option.classList.remove("selected"));
       target.closest(".option")?.classList.add("selected");
       document.querySelector("#quiz-submit")?.removeAttribute("disabled");
     }
     if (target.matches(".survey-option input")) {
-      target.closest(".survey-options")?.querySelectorAll(".survey-option").forEach((option) => option.classList.remove("selected"));
+      target
+        .closest(".survey-options")
+        ?.querySelectorAll(".survey-option")
+        .forEach((option) => option.classList.remove("selected"));
       target.closest(".survey-option")?.classList.add("selected");
     }
     if (target.matches("#consent")) {
       state.consent = target.checked;
-      target.closest(".consent-check")?.classList.toggle("checked", target.checked);
+      target
+        .closest(".consent-check")
+        ?.classList.toggle("checked", target.checked);
       const button = document.querySelector("#finish-button");
       button.disabled = !target.checked;
       button.classList.toggle("btn-gift", target.checked);
@@ -783,7 +895,8 @@ async function handleQuizSubmit() {
 
   app.addEventListener("input", (event) => {
     if (event.target.matches("#q4")) {
-      document.querySelector("#q4-count").textContent = `${event.target.value.length} / 100자`;
+      document.querySelector("#q4-count").textContent =
+        `${event.target.value.length} / 100자`;
     }
     if (event.target.matches("#phone")) {
       const formatted = formatPhone(event.target.value);
@@ -799,33 +912,34 @@ async function handleQuizSubmit() {
     if (event.target.id === "participant-form") handleParticipant(event.target);
     if (event.target.id === "privacy-form") {
       if (!state.consent) {
-          showToast("개인정보 수집·이용 동의가 필요합니다.");
+        showToast("개인정보 수집·이용 동의가 필요합니다.");
       } else {
-          // 서버로 데이터 전송
-          submitFinalData();
+        // 서버로 데이터 전송
+        submitFinalData();
       }
     }
   });
 
   async function submitFinalData() {
-      try {
-          const res = await fetch("/api/tour/submit_survey", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                  survey: state.survey,
-                  participant: state.participant
-              })
-          });
-          const data = await res.json();
-          if(data.success) {
-              showFinal();
-          } else {
-              showToast("정보 저장에 실패했습니다. 다시 시도해주세요.");
-          }
-      } catch (err) {
-          showToast("서버와 통신할 수 없습니다.");
+    try {
+      const res = await fetch("/api/tour/submit_survey", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          survey: state.survey,
+          participant: state.participant,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        state.isSurveyDone = true;
+        showFinal();
+      } else {
+        showToast("정보 저장에 실패했습니다. 다시 시도해주세요.");
       }
+    } catch (err) {
+      showToast("서버와 통신할 수 없습니다.");
+    }
   }
 
   modalRoot.addEventListener("click", (event) => {
@@ -849,8 +963,11 @@ async function handleQuizSubmit() {
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && modalRoot.innerHTML) closeModal();
     if (event.key !== "Tab" || !modalRoot.innerHTML) return;
-    const controls = [...modalRoot.querySelectorAll("button, input, [href], [tabindex]:not([tabindex='-1'])")]
-      .filter((element) => !element.disabled && element.offsetParent !== null);
+    const controls = [
+      ...modalRoot.querySelectorAll(
+        "button, input, [href], [tabindex]:not([tabindex='-1'])",
+      ),
+    ].filter((element) => !element.disabled && element.offsetParent !== null);
     if (!controls.length) return;
     const first = controls[0];
     const last = controls.at(-1);
@@ -993,33 +1110,37 @@ async function handleQuizSubmit() {
     render();
   });
 
-  history.replaceState({ screen: state.screen, zone: state.zone }, "", `#${state.screen}`);
+  history.replaceState(
+    { screen: state.screen, zone: state.zone },
+    "",
+    `#${state.screen}`,
+  );
 
-    async function initApp() {
+  async function initApp() {
     try {
       // 1. 유저 세션 시작 (여권번호 발급/확인)
       await fetch("/api/tour/start", { method: "POST" });
-      
+
       // 2. 획득한 스탬프 불러오기
       const res = await fetch(`/api/tour/my_stamps?t=${new Date().getTime()}`);
       const data = await res.json();
-      
+
       if (data.success) {
         // 서버에서 PHOTO_SUBMITTED 상태인 것들만 맵핑
         const dbStamps = data.stamps
-            .filter(s => s.status === 'PHOTO_SUBMITTED')
-            .map(s => {
-                if(s.dima_id === 1) return "G";
-                if(s.dima_id === 2) return "I";
-                if(s.dima_id === 3) return "F";
-                if(s.dima_id === 4) return "T";
-            });
+          .filter((s) => s.status === "PHOTO_SUBMITTED")
+          .map((s) => {
+            if (s.dima_id === 1) return "G";
+            if (s.dima_id === 2) return "I";
+            if (s.dima_id === 3) return "F";
+            if (s.dima_id === 4) return "T";
+          });
         state.stamps = dbStamps;
       }
     } catch (err) {
       console.error("앱 초기화 오류", err);
     } finally {
-      render(); 
+      render();
     }
   }
 
