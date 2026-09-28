@@ -688,7 +688,9 @@
 
   function showFinal() {
     const isOffline = !!localStorage.getItem("dima_offline_queue");
-    const statusText = isOffline ? "<p style='color:#FF4D69; font-weight:bold; margin-top:5px;'>서버 동기화 대기중</p>" : "<p style='color:#22c55e; font-weight:bold; margin-top:5px;'>서버 전송 완료</p>";
+    const statusText = isOffline 
+      ? "<p id='sync-status' style='color:#FF4D69; font-weight:bold; margin-top:5px;'>서버 동기화 대기중</p>" 
+      : "<p id='sync-status' style='color:#22c55e; font-weight:bold; margin-top:5px;'>서버 전송 완료</p>";
     const receiptBtn = `<button class="btn btn-secondary" style="margin-top:8px" type="button" data-action="download-receipt">확인증 이미지 저장</button>`;
     
     showModal(
@@ -1226,16 +1228,27 @@ async function submitFinalData() {
     }
   }
 
-  window.addEventListener('online', async () => {
+window.addEventListener('online', async () => {
   const queueData = localStorage.getItem("dima_offline_queue");
   if (queueData) {
     try {
-      await fetch("/api/tour/submit_survey", {
+      const res = await fetch("/api/tour/submit_survey", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: queueData,
       });
-      localStorage.removeItem("dima_offline_queue");
+      const data = await res.json();
+
+      if (data.success) {
+        localStorage.removeItem("dima_offline_queue"); // 큐 비우기
+
+        // 화면에 떠 있는 모달 상태 텍스트 동적 업데이트
+        const syncStatusEl = document.querySelector("#sync-status");
+        if (syncStatusEl) {
+          syncStatusEl.textContent = "서버 전송 완료";
+          syncStatusEl.style.color = "#22c55e";
+        }
+      }
     } catch(e) {
       // 다시 실패하면 큐에 유지
     }
