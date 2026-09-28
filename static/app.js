@@ -1195,6 +1195,8 @@ async function submitFinalData() {
   );
 
   async function initApp() {
+    flushOfflineQueue();
+    
     const savedDraft = localStorage.getItem(DRAFT_KEY);
     if (savedDraft) {
       const parsed = JSON.parse(savedDraft);
@@ -1228,30 +1230,41 @@ async function submitFinalData() {
     }
   }
 
-window.addEventListener('online', async () => {
+// 큐에 있는 데이터를 서버로 밀어넣고 UI를 업데이트하는 전용 함수
+async function flushOfflineQueue() {
   const queueData = localStorage.getItem("dima_offline_queue");
-  if (queueData) {
-    try {
-      const res = await fetch("/api/tour/submit_survey", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: queueData,
-      });
-      const data = await res.json();
+  if (!queueData) return; // 큐가 비어있으면 종료
 
-      if (data.success) {
-        localStorage.removeItem("dima_offline_queue"); // 큐 비우기
-
-        // 화면에 떠 있는 모달 상태 텍스트 동적 업데이트
-        const syncStatusEl = document.querySelector("#sync-status");
-        if (syncStatusEl) {
-          syncStatusEl.textContent = "서버 전송 완료";
-          syncStatusEl.style.color = "#22c55e";
-        }
+  try {
+    const res = await fetch("/api/tour/submit_survey", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: queueData,
+    });
+    const data = await res.json();
+    
+    if (data.success) {
+      localStorage.removeItem("dima_offline_queue"); // 큐 비우기
+      
+      // 완료 화면에 떠 있는 상태 텍스트 강제 변경
+      const syncStatusEl = document.querySelector("#sync-status");
+      if (syncStatusEl) {
+        syncStatusEl.innerHTML = "서버 전송 완료";
+        syncStatusEl.style.color = "#22c55e";
       }
-    } catch(e) {
-      // 다시 실패하면 큐에 유지
     }
+  } catch(e) {
+    console.warn("오프라인 큐 전송 실패. 통신망 복구 대기중...");
+  }
+}
+
+// 1. 통신망 복구 이벤트 감지 시 트리거
+window.addEventListener('online', flushOfflineQueue);
+
+// 2. 폰 화면을 껐다 켜거나 다른 앱에서 돌아왔을 때 트리거 (가장 중요!)
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") {
+    flushOfflineQueue();
   }
 });
 
