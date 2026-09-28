@@ -788,7 +788,7 @@
     return value;
   }
 
-  function handleParticipant(form) {
+function handleParticipant(form) {
     const data = new FormData(form);
     const participant = {
       name: String(data.get("name") || "").trim(),
@@ -796,15 +796,31 @@
       department: String(data.get("department") || "").trim(),
       phone: formatPhone(String(data.get("phone") || "").trim()),
     };
-    if (
-      participant.name.length < 2 ||
-      participant.department.length < 2 ||
-      !/^[0-9A-Za-z-]{5,15}$/.test(participant.studentId) ||
-      !/^01[016789]-\d{3,4}-\d{4}$/.test(participant.phone)
-    ) {
-      showError("#participant-error", "모든 필수 정보를 정확히 입력해 주세요.");
+
+    // 1. 이름 검사
+    if (participant.name.length < 2) {
+      showError("#participant-error", "성명을 2글자 이상 입력해 주세요.");
       return;
     }
+    
+    // 2. 학번 검사 (5~15자리 숫자/영문)
+    if (!/^[0-9A-Za-z-]{5,15}$/.test(participant.studentId)) {
+      showError("#participant-error", "학번을 정확히 입력해 주세요. (5자리 이상)");
+      return;
+    }
+
+    // 3. 학과 검사
+    if (participant.department.length < 2) {
+      showError("#participant-error", "학과(전공)를 2글자 이상 입력해 주세요.");
+      return;
+    }
+
+    // 4. 휴대전화번호 검사 (010, 011 등 표준 형식)
+    if (!/^01[016789]-\d{3,4}-\d{4}$/.test(participant.phone)) {
+      showError("#participant-error", "올바른 휴대전화번호 형식이 아닙니다. (예: 010-0000-0000)");
+      return;
+    }
+
     state.participant = participant;
     navigate("privacy");
   }
