@@ -266,7 +266,7 @@
       <div class="map-card">
         <div class="map-window"><img src="assets/campus-zone-map.png" alt="DIMA 캠퍼스 G, I, F, T Zone 배치도" /></div>
       </div>
-      <p class="note" style="margin-top: 10px; text-align: center;">도전할 Zone을 직접 선택해주세요.</p>
+      <p class="zone-choose">도전할 Zone을 직접 선택해주세요.</p>
       <div class="zone-grid" aria-label="GIFT Zone 선택">${ORDER.map(zoneCard).join("")}</div>
       <div class="button-stack">
         ${
