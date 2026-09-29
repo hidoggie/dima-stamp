@@ -560,9 +560,10 @@ function resetGameState() {
   state.resultPhotoBlob = null;
   state.imageFound = false;
   setRingProgress(0);
+}
 
+function resetPoseSelection() {
   state.selectedPose = "thumbs_up";
-  
   const tabs = document.querySelectorAll("#pose-tabs .tab");
   if (tabs.length > 0) {
     tabs.forEach((tab) => {
@@ -574,7 +575,6 @@ function resetGameState() {
     });
   }
 }
-
 // AR 화면의 HTML이 DOM에 그려진 직후에 버튼들을 찾고 이벤트를 연결하는 함수
 function bindArEvents() {
   // 1. 화면 요소들 매핑
@@ -633,6 +633,7 @@ function bindArEvents() {
   if (btnRetry) {
     btnRetry.onclick = () => {
       resetGameState();
+      resetPoseSelection();
       showScreen("intro");
     };
   }
@@ -679,6 +680,7 @@ window.startTigerQuest = function(expectedTarget, onSuccessCallback, zoneId) {
 
   bindArEvents();
   resetGameState();
+  resetPoseSelection();
   showScreen("intro");
 }
 
