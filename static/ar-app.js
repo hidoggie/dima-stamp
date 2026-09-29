@@ -560,6 +560,19 @@ function resetGameState() {
   state.resultPhotoBlob = null;
   state.imageFound = false;
   setRingProgress(0);
+
+  state.selectedPose = "thumbs_up";
+  
+  const tabs = document.querySelectorAll("#pose-tabs .tab");
+  if (tabs.length > 0) {
+    tabs.forEach((tab) => {
+      if (tab.dataset.pose === "thumbs_up") {
+        tab.classList.add("active");
+      } else {
+        tab.classList.remove("active");
+      }
+    });
+  }
 }
 
 // AR 화면의 HTML이 DOM에 그려진 직후에 버튼들을 찾고 이벤트를 연결하는 함수
