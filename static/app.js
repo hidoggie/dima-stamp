@@ -703,12 +703,12 @@ function stampRow(id) {
     const statusText = isOffline 
       ? "<p id='sync-status' style='color:#FF4D69; font-weight:bold; margin-top:5px;'>서버 동기화 대기중</p>" 
       : "<p id='sync-status' style='color:#22c55e; font-weight:bold; margin-top:5px;'>서버 전송 완료</p>";
-    const receiptBtn = `<button class="btn btn-secondary" style="margin-top:8px" type="button" data-action="download-receipt">확인증 이미지 저장</button>`;
     
     showModal(
       `<div class="result-icon inline-icon">${icon("check")}</div>
       <span class="eyebrow">COMPLETE</span>
-      <h2 id="final-title" style="margin-top:10px">GIFT Festa 참여 완료!</h2>
+      <!-- 1. 타이틀의 GIFT를 색상/점 있는 스타일로 변경 -->
+      <h2 id="final-title" style="margin-top:10px">${giftLetters()} Festa 참여 완료!</h2>
       ${statusText}
       <p style="margin-top:10px">GIFT 스탬프투어와 만족도 조사를 모두 완료했습니다.</p>
       <div class="benefit-list">
@@ -718,9 +718,13 @@ function stampRow(id) {
       <div class="modal-divider"></div>
       <p style="color:#fff">참여해 주셔서 감사합니다.</p>
       <div class="final-brand"><em>Miracle DIMA,</em><strong>${giftLetters()} Festa 2026</strong></div>
+      
+      <!-- 3. 확인 버튼 위 안내 문구 추가 -->
+      <p class="note" style="margin-top:20px; text-align:center; word-break:keep-all;">※ 만일의 경우를 대비하여 확인 버튼 클릭 시 완료 보관증이 기기에 자동 다운로드됩니다.</p>
+      
+      <!-- 2. 단일 버튼으로 통합 -->
       <div class="button-stack">
         <button class="btn btn-gift" type="button" data-action="confirm-final">확인</button>
-        ${receiptBtn}
       </div>`,
       "final-title",
       "#B044FF",
@@ -1035,33 +1039,35 @@ async function submitFinalData() {
       navigate(state.stamps.length === 4 ? "stampbook" : "start");
     }
     if (action === "confirm-final") {
-      closeModal(false);
-      navigate("done", true);
-    }
-    if (action === "reset") {
-      showToast("스탬프 디자인 상태를 초기화했습니다.");
-    }
-
-    if (action === "download-receipt") {
+      // 확인 버튼 누를 시 이미지 다운로드 자동 실행
       const canvas = document.createElement("canvas");
       canvas.width = 600; canvas.height = 400;
       const ctx = canvas.getContext("2d");
 
-  // 배경 및 텍스트 렌더링
+      // 배경 및 텍스트 렌더링
       ctx.fillStyle = "#100f16"; ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = "#fff"; ctx.font = "20px sans-serif";
       ctx.fillText("GIFT Festa 2026 확인증", 30, 50);
       ctx.fillText(`이름: ${state.participant.name}`, 30, 100);
       ctx.fillText(`학번: ${state.participant.studentId}`, 30, 140);
-      ctx.fillText(`인증코드: ${state.idempotencyKey.split('-')[0]}`, 30, 180);
+      ctx.fillText(`인증코드: ${(state.idempotencyKey || "").split('-')[0]}`, 30, 180);
       ctx.fillText(`저장일시: ${new Date().toLocaleString()}`, 30, 220);
 
-  // 다운로드 트리거
+      // 다운로드 트리거
       const link = document.createElement("a");
       link.download = "GIFT_완료확인증.png";
       link.href = canvas.toDataURL("image/png");
       link.click();
+
+      // 기존 화면 전환 동작 실행
+      closeModal(false);
+      navigate("done", true);
     }
+
+    if (action === "reset") {
+      showToast("스탬프 디자인 상태를 초기화했습니다.");
+    }
+
   });
 
   document.addEventListener("keydown", (event) => {
