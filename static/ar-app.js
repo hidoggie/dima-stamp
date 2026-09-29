@@ -31,7 +31,7 @@ const POSE_GESTURE_MAP = {
 };
 const POSE_LABEL_KO = {
   thumbs_up: "엄지척 포즈",
-  victory: "V 포즈",
+  victory: "손바닥이 보이는 V 포즈",
 };
 
 const GESTURE_CONFIDENCE_THRESHOLD = 0.65;
