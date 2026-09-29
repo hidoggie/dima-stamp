@@ -964,8 +964,12 @@ function handleParticipant(form) {
   });
 
 async function submitFinalData() {
-  // 멱등성 보장을 위한 고유 키 생성 (없으면 생성)
-  if (!state.idempotencyKey) state.idempotencyKey = crypto.randomUUID();
+  // 1. 아이폰 로컬 테스트 시 crypto.randomUUID() 차단 에러 방지용 안전장치
+  if (!state.idempotencyKey) {
+    state.idempotencyKey = typeof crypto.randomUUID === "function" 
+      ? crypto.randomUUID() 
+      : 'id-' + new Date().getTime() + '-' + Math.floor(Math.random() * 10000);
+  }
 
   const payload = {
     survey: state.survey,
@@ -981,28 +985,30 @@ async function submitFinalData() {
     });
     const data = await res.json();
 
+    // 2. 정상 성공 또는 중복 제출 시
     if (data.success || data.already_submitted) {
-      localStorage.removeItem("dima_offline_queue"); 
+      localStorage.removeItem("dima_offline_queue"); // 오프라인 큐 비우기
+      localStorage.removeItem(DRAFT_KEY);            // 작성 중이던 임시 데이터 비우기
       state.isSurveyDone = true;
-      
-      const syncStatusEl = document.querySelector("#sync-status");
-      if (syncStatusEl) {
-        syncStatusEl.innerHTML = "서버 전송 완료";
-        syncStatusEl.style.color = "#22c55e";
-      }
       
       if (data.already_submitted) {
         showToast("이미 제출된 설문 내역이 있어 기존 기록이 유지됩니다.");
       }
+
+      // ★ 정상 처리 후 모달 팝업 띄우기 (이전 코드에서 누락되었던 핵심)
+      showFinal();
     } else {
       throw new Error("Server error");
     }
   } catch (err) {
-    // [낙관적 UI 처리] 통신 실패 시 오프라인 큐에 저장 후 강제 완료 처리
+    // 3. [낙관적 UI 처리] 통신 실패 시 오프라인 큐에 저장 후 강제 완료 처리
     showToast("네트워크 불안정으로 오프라인 저장되었습니다.");
     localStorage.setItem("dima_offline_queue", JSON.stringify(payload));
+    localStorage.removeItem(DRAFT_KEY); // 작성 중이던 임시 데이터 비우기
     state.isSurveyDone = true;
-    showFinal(); // 에러가 나도 완료 화면으로 통과시킴
+    
+    // ★ 에러가 났을 때도 모달 팝업 띄우기
+    showFinal();
   }
 }
 
