@@ -239,9 +239,20 @@ img {
   font-size: 16px;
 }
 
+/* 어두운 배경에서도 보이도록 I / F 는 같은 색상 계열의 밝은 톤 + 글로우 적용 */
+.gift-g,
+.gift-i,
+.gift-f,
+.gift-t { font-weight: 900; }
 .gift-g { color: var(--g); }
-.gift-i { color: var(--i); text-shadow: 0 0 10px rgba(137, 12, 132, 0.75); }
-.gift-f { color: var(--f); text-shadow: 0 0 10px rgba(94, 66, 190, 0.85); }
+.gift-i {
+  color: #e05bda;
+  text-shadow: 0 0 6px rgba(224, 91, 218, 0.7), 0 0 14px rgba(137, 12, 132, 0.9);
+}
+.gift-f {
+  color: #a58cf5;
+  text-shadow: 0 0 6px rgba(165, 140, 245, 0.7), 0 0 14px rgba(94, 66, 190, 0.95);
+}
 .gift-t { color: var(--t); }
 
 .glass-card {
@@ -580,8 +591,27 @@ img {
 }
 
 .stamp-row.locked {
-  opacity: 0.42;
-  filter: grayscale(1);
+  opacity: 1;
+  filter: none;
+}
+
+/* 미획득: 밝은 회색 받침 위에 회색 스탬프 형태가 보이도록 처리 */
+.stamp-row.locked img {
+  box-sizing: border-box;
+  padding: 5px;
+  background: radial-gradient(circle at 50% 35%, #f1eff5 0%, #d4d0de 100%);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 50%;
+  filter: grayscale(1) brightness(0.9) contrast(1.05);
+  opacity: 0.95;
+}
+
+.stamp-row.locked h3 { color: #d8d4e2; }
+.stamp-row.locked p { color: #a9a4ba; }
+
+.stamp-row.locked .stamp-status {
+  color: #cfcbdc;
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .gift-banner {
