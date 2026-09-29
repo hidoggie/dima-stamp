@@ -512,7 +512,10 @@ function stampRow(id) {
   function renderDone() {
     return `<section class="screen center" aria-labelledby="done-title" style="padding-top: 10vh;">
       <div class="complete-check inline-icon" style="transform: scale(1.1); margin-bottom: 24px;">${icon("check")}</div>
-      <span class="eyebrow" style="margin-bottom: 16px; display: inline-block;">COMPLETE</span>
+      
+      <!-- display를 inline-flex로 변경하고 수직/수평 중앙 정렬 속성 강제 부여 -->
+      <span class="eyebrow" style="margin-bottom: 16px; display: inline-flex; align-items: center; justify-content: center; line-height: 1; padding-top: 2px;">COMPLETE</span>
+      
       <h1 class="title" id="done-title" style="margin-bottom: 20px;">참여가 완료되었습니다.</h1>
       <p class="lead" style="margin-bottom: 40px;">GIFT Festa 2026에 참여해 주셔서 감사합니다.</p>
       
@@ -1042,17 +1045,17 @@ async function submitFinalData() {
       closeModal(false);
       navigate(state.stamps.length === 4 ? "stampbook" : "start");
     }
+
     if (action === "confirm-final") {
       const canvas = document.createElement("canvas");
       canvas.width = 600; 
       canvas.height = 480;
       const ctx = canvas.getContext("2d");
 
-      // 1. 캔버스 배경 (다크 테마)
+      // 1~5. 배경 및 텍스트 렌더링 (이전 코드와 동일)
       ctx.fillStyle = "#100f16"; 
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // 2. 보드(카드) 테두리 및 배경 그리기
       const rx = 30, ry = 30, rw = 540, rh = 420, radius = 15;
       ctx.beginPath();
       ctx.moveTo(rx + radius, ry);
@@ -1066,19 +1069,17 @@ async function submitFinalData() {
       ctx.quadraticCurveTo(rx, ry, rx + radius, ry);
       ctx.closePath();
       
-      ctx.fillStyle = "#1c1b29"; // 카드 내부 배경색
+      ctx.fillStyle = "#1c1b29"; 
       ctx.fill();
       ctx.lineWidth = 2;
-      ctx.strokeStyle = "#B044FF"; // 포인트 컬러 테두리
+      ctx.strokeStyle = "#B044FF"; 
       ctx.stroke();
 
-      // 3. 타이틀
       ctx.textAlign = "center";
       ctx.fillStyle = "#ffffff"; 
       ctx.font = "bold 32px sans-serif";
       ctx.fillText("GIFT Festa 2026 확인증", canvas.width / 2, 95);
 
-      // 4. 타이틀 아래 구분선
       ctx.beginPath();
       ctx.moveTo(70, 130);
       ctx.lineTo(530, 130);
@@ -1086,7 +1087,6 @@ async function submitFinalData() {
       ctx.strokeStyle = "#444444";
       ctx.stroke();
 
-      // 5. 항목 텍스트 (글머리 기호 및 정렬)
       ctx.textAlign = "left";
       ctx.font = "22px sans-serif";
       ctx.fillStyle = "#eeeeee";
@@ -1099,20 +1099,43 @@ async function submitFinalData() {
       ctx.fillText(`▪ 학번: ${state.participant.studentId}`, startX, startY); startY += lineH;
       ctx.fillText(`▪ 인증코드: ${(state.idempotencyKey || "").split('-')[0]}`, startX, startY); startY += lineH;
       
-      // 저장 일시는 약간 작고 흐리게 처리
       ctx.font = "20px sans-serif";
       ctx.fillStyle = "#aaaaaa";
       ctx.fillText(`▪ 저장일시: ${new Date().toLocaleString()}`, startX, startY + 30);
 
-      // 다운로드 트리거
-      const link = document.createElement("a");
-      link.download = "GIFT_완료확인증.png";
-      link.href = canvas.toDataURL("image/png");
-      link.click();
+      // ★ 아이폰(iOS) 완벽 대응을 위한 비동기 다운로드 및 Web Share API 적용
+      canvas.toBlob(async (blob) => {
+        if (!blob) return;
+        const fileName = "GIFT_완료확인증.png";
+        const file = new File([blob], fileName, { type: "image/png" });
 
-      // 화면 전환
-      closeModal(false);
-      navigate("done", true);
+        // iOS 사파리 등 Web Share API 지원 기기 (네이티브 공유 창 호출)
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              files: [file],
+              title: "GIFT Festa 2026 확인증"
+            });
+          } catch (err) {
+            // 사용자가 공유 창을 취소하고 닫은 경우 무시하고 다음으로 넘어감
+            console.warn("Share API 취소 또는 에러", err);
+          }
+        } else {
+          // 안드로이드 및 PC 웹 브라우저 폴백 (기존 <a> 태그 다운로드 방식)
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.download = fileName;
+          link.href = url;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          setTimeout(() => URL.revokeObjectURL(url), 10000);
+        }
+
+        // 다운로드/공유 창 액션이 끝나면 무조건 최종 참여 완료 화면으로 이동
+        closeModal(false);
+        navigate("done", true);
+      }, "image/png");
     }
 
     if (action === "reset") {
