@@ -1390,12 +1390,26 @@ html, body {
   font-size: 14px;
 }
 
-/* 화면 중앙의 가이드 오버레이 이미지 회전 */
 #guide-icon[data-icon="thumbs_up"] {
-  transform: rotate(-80deg); /* 필요에 따라 -70deg, -90deg 등으로 숫자를 조절해 보세요 */
+  background-image: url('assets/thumb-outline.png'); 
+  background-size: contain; 
+  background-repeat: no-repeat;
+  background-position: center;
+  
+  /* 사이즈 추천: 화면 중앙 가이드용 (너무 크면 시야를 가리므로 200~250px 적당) */
+  width: 200px;
+  height: 200px;
+  transform: rotate(-10deg); 
 }
 
-/* 상단 탭에 있는 작은 엄지척 아이콘도 같이 돌리고 싶다면 아래 코드도 추가합니다 */
+/* 2. 상단 탭에 들어가는 작은 아이콘 이미지 */
 #pose-tabs .tab-icon[data-icon="thumbs_up"] {
-  transform: rotate(-80deg);
+  background-image: url('assets/thumb-outline.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  
+  /* 사이즈 추천: 탭 버튼용 (보통 20~24px이 가장 예쁩니다) */
+  width: 24px;
+  height: 24px;
 }
