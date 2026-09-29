@@ -1276,6 +1276,7 @@ async function submitFinalData() {
     </div>
 
     <div class="result-actions">
+      <button id="btn-quiz" class="btn btn-gift" style="display:none">퀴즈 풀고 스탬프 받기</button>
       <button id="btn-download" class="btn btn-secondary">사진 저장하기</button>
       <button id="btn-retry" class="btn btn-primary">다시 도전하기</button>
     </div>

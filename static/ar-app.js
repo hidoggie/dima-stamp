@@ -430,45 +430,48 @@ function teardownArScene() {
 // ---------------------------------------------------------------------------
 // RESULT SCREEN (수정됨: 성공 시 메인 앱으로 콜백, 실패 시 결과화면 표시)
 // ---------------------------------------------------------------------------
+// RESULT SCREEN (수정됨: 성공 시 결과화면 표시 후 퀴즈풀기 버튼으로 진행)
 async function finishGame(success, targetName) {
-  if (success) {
-    if (typeof window.onQuestSuccess === "function") {
-      // 메인 앱의 콜백 함수에 어떤 타겟이 인식되었는지 넘겨줍니다.
-      window.onQuestSuccess(targetName); 
-    }
-    return; 
-  }
-
-  // 2. 실패했을 경우: 기존처럼 실패 화면(screen-result) 렌더링
   showScreen("result");
 
   const icon = $("#result-icon");
   icon.classList.remove("success", "fail", "pop-in");
   void icon.offsetWidth; // restart animation
   
-  // 이미 위에서 success=true 상황은 return으로 빠져나갔으므로 무조건 fail 처리
-  icon.classList.add("fail", "pop-in");
-  icon.textContent = "✕";
-
-  $("#result-title").textContent = "인증 실패";
-  $("#result-sub").textContent = "엑스배너 이미지를 다시 인식시켜 도전해보세요.";
+  // 1. 성공/실패에 따른 텍스트 및 아이콘 분기 처리
+  if (success) {
+    icon.classList.add("success", "pop-in");
+    icon.textContent = "✓"; // 성공 아이콘
+    $("#result-title").textContent = "인증 성공!";
+    $("#result-sub").textContent = "결과 사진을 확인하고 퀴즈를 풀어보세요.";
+  } else {
+    icon.classList.add("fail", "pop-in");
+    icon.textContent = "✕"; // 실패 아이콘
+    $("#result-title").textContent = "인증 실패";
+    $("#result-sub").textContent = "엑스배너 이미지를 다시 인식시켜 도전해보세요.";
+  }
 
   const photoImg = $("#result-photo");
   const downloadBtn = $("#btn-download");
+  const retryBtn = $("#btn-retry");
+  
+  // HTML에 있는 '퀴즈풀기' 버튼의 ID를 찾아서 맞춰주세요 (여기서는 #btn-quiz 로 가정)
+  const quizBtn = $("#btn-quiz"); 
 
   // 촬영된 데이터가 하나도 없으면 이미지/버튼 숨김
   if (!state.poseFrameUrl && !state.imageFrameUrl) {
     photoImg.style.visibility = "hidden";
     downloadBtn.style.display = "none";
+    if (quizBtn) quizBtn.style.display = "none";
     return;
   }
 
-  // 사진 합성(composeResultPhoto) 대기 중 UI 처리
+  // 사진 합성 대기 중 UI 처리
   downloadBtn.disabled = true;
   downloadBtn.textContent = "사진 준비 중...";
 
-  // 실패 상태(false)로 사진 합성 진행
-  const blob = await composeResultPhoto(false);
+  // 성공 여부(success)를 전달하여 사진 합성 진행 (SUCCESS / FAILED 자동 출력됨)
+  const blob = await composeResultPhoto(success);
   state.resultPhotoBlob = blob;
 
   if (blob) {
@@ -477,9 +480,28 @@ async function finishGame(success, targetName) {
     downloadBtn.style.display = "inline-flex";
     downloadBtn.disabled = false;
     downloadBtn.textContent = "사진 저장하기";
+
+    // 성공했을 때와 실패했을 때 보여줄 버튼 분기
+    if (success) {
+      if (retryBtn) retryBtn.style.display = "none"; // 성공 시 다시하기 버튼 숨김
+      if (quizBtn) {
+        quizBtn.style.display = "inline-flex"; // 퀴즈 버튼 노출
+        // 퀴즈 버튼을 눌렀을 때 비로소 메인 앱으로 콜백 전달
+        quizBtn.onclick = () => {
+          if (typeof window.onQuestSuccess === "function") {
+            window.onQuestSuccess(targetName);
+          }
+        };
+      }
+    } else {
+      if (quizBtn) quizBtn.style.display = "none"; // 실패 시 퀴즈 버튼 숨김
+      if (retryBtn) retryBtn.style.display = "inline-flex"; // 실패 시 다시하기 버튼 노출
+    }
+
   } else {
     photoImg.style.visibility = "hidden";
     downloadBtn.style.display = "none";
+    if (quizBtn) quizBtn.style.display = "none";
   }
 }
 
