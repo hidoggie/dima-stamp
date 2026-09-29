@@ -866,7 +866,38 @@ function handleParticipant(form) {
       return;
     }
 
-    showToast("위치를 확인 중입니다...");
+      showToast("위치를 확인 중입니다... (테스트 모드)");
+
+    // ==========================================
+    // [테스트용 임시 코드] 행사장 좌표 강제 셋팅
+    // ==========================================
+    const latitude = 37.0589182;
+    const longitude = 127.3581239;
+    const dima_id = ZONES[id].dima_id;
+
+    try {
+      const res = await fetch("/api/tour/arrive", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dima_id, lat: latitude, lng: longitude }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        // 위치 통과 시 -> AR 화면으로 진입!
+        state.zone = id;
+        navigate("ar");
+      } else {
+        showToast(data.error || "위치 인증에 실패했습니다.");
+      }
+    } catch (err) {
+      showToast("서버와 통신할 수 없습니다.");
+    }
+// ==========================================
+
+
+/* --- 실 서비스 배포 시 위 테스트 코드를 지우고 아래 주석 해제 ---
+
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const { latitude, longitude } = pos.coords;
@@ -895,6 +926,8 @@ function handleParticipant(form) {
         showToast("GPS 위치 권한을 허용해주세요.");
       },
     );
+---------------------------------------- */
+
   }
 
   app.addEventListener("click", (event) => {
