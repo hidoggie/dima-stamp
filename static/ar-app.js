@@ -254,8 +254,8 @@ const targetName = state.currentTargetName || "G-target";
   
   return `
     <a-scene
-      xrextras-loading
-      xrextras-runtime-error
+      vr-mode-ui="enabled: false"
+      xrextras-capture-config="requestMic: false" 
       renderer="colorManagement: true; physicallyBasedRendering: true;"
       xrweb="disableWorldTracking: true">
       

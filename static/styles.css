@@ -1406,3 +1406,12 @@ html, body {
   justify-content: center !important;
   align-items: center !important;
 }
+
+#xr-ui-container {
+  display: none !important;
+}
+
+/* A-Frame 기본 VR 진입 버튼 강제 숨김 (혹시 남아있을 경우) */
+.a-enter-vr {
+  display: none !important;
+}

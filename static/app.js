@@ -543,7 +543,10 @@
 
     requestAnimationFrame(() => {
       app.focus({ preventScroll: true });
-      window.scrollTo({ top: 0, behavior: "auto" });
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0; // 안드로이드/PC 웹 표준 대응
+      document.body.scrollTop = 0;            // iOS 사파리 대응
+      app.scrollTop = 0;
 
       // 2. 화면 렌더링이 끝나고, 현재 화면이 AR이라면 퀘스트를 시작합니다.
       if (state.screen === "ar" && window.startTigerQuest) {
