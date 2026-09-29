@@ -1391,5 +1391,5 @@ html, body {
 }
 
 #guide-icon[data-icon="thumbs_up"] {
-    transform: rotate(-10deg); 
+    transform: perspective(500px) rotateY(10deg);
 }
