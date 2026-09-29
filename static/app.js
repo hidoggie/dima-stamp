@@ -533,6 +533,15 @@
   };
 
   function render() {
+    const restrictedScreens = ["survey1", "survey2", "participant", "privacy"];
+    if (state.isSurveyDone && restrictedScreens.includes(state.screen)) {
+      showToast("이미 참여가 완료되었습니다.");
+      
+      // 강제로 완료 화면(complete)으로 덮어씌워버림
+      state.screen = "complete"; 
+      history.replaceState({ screen: "complete", zone: state.zone }, "", "#complete");
+    }
+
     if (state.screen !== "ar" && window.stopTigerQuest) {
       window.stopTigerQuest();
     }
