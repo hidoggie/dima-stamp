@@ -1438,3 +1438,13 @@ html, body {
   color: #d9c8ff;
   font-size: 14px;
 }
+
+.stamp-row.collected.stamp-f .stamp-plate {
+  background: radial-gradient(circle at 50% 35%, #2d2557 0%, #14112b 100%);
+  border: 2px solid #a58cf5;
+  box-shadow: 0 0 6px rgba(165, 140, 245, 0.7), 0 0 14px rgba(94, 66, 190, 0.95);
+}
+
+.stamp-row.collected.stamp-f .stamp-plate img {
+  filter: drop-shadow(0 0 4px rgba(165, 140, 245, 0.55));
+}

@@ -61,6 +61,7 @@
       meaning: "실패를 두려워하지 않음",
       color: "#381F87",
       stamp: "assets/stamps/f.png",
+      stampBook: "assets/stamps/f-light.png",
       question:
         "실패를 두려워하지 않고 다시 도전하는 DIMA의 정신, F는 무엇일까요?",
       options: [
@@ -316,8 +317,9 @@
   function stampRow(id) {
     const zone = ZONES[id];
     const collected = state.stamps.includes(id);
-    return `<article class="glass-card stamp-row ${collected ? "" : "locked"}" style="${zoneStyle(zone)}">
-      <span class="stamp-plate"><img src="${zone.stamp}" alt="${id} 스탬프 ${collected ? "획득 완료" : "미획득"}" /></span>
+    const stampSrc = collected && zone.stampBook ? zone.stampBook : zone.stamp;
+    return `<article class="glass-card stamp-row stamp-${id.toLowerCase()} ${collected ? "collected" : "locked"}" style="${zoneStyle(zone)}">
+      <span class="stamp-plate"><img src="${stampSrc}" alt="${id} 스탬프 ${collected ? "획득 완료" : "미획득"}" /></span>
       <div><h3>${id} · ${zone.name}</h3><p>${zone.meaning}</p></div>
       <span class="stamp-status">${collected ? "획득 완료" : "미획득"}</span>
     </article>`;
