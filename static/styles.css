@@ -1391,25 +1391,5 @@ html, body {
 }
 
 #guide-icon[data-icon="thumbs_up"] {
-  background-image: url('assets/thumb-outline.png'); 
-  background-size: contain; 
-  background-repeat: no-repeat;
-  background-position: center;
-  
-  /* 사이즈 추천: 화면 중앙 가이드용 (너무 크면 시야를 가리므로 200~250px 적당) */
-  width: 200px;
-  height: 200px;
-  transform: rotate(-10deg); 
-}
-
-/* 2. 상단 탭에 들어가는 작은 아이콘 이미지 */
-#pose-tabs .tab-icon[data-icon="thumbs_up"] {
-  background-image: url('assets/thumb-outline.png');
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
-  
-  /* 사이즈 추천: 탭 버튼용 (보통 20~24px이 가장 예쁩니다) */
-  width: 24px;
-  height: 24px;
+    transform: rotate(-10deg); 
 }
