@@ -510,13 +510,17 @@ function stampRow(id) {
   }
 
   function renderDone() {
-    return `<section class="screen center" aria-labelledby="done-title" style="padding-top:30px">
-      <div class="complete-check inline-icon">${icon("check")}</div>
-      <span class="eyebrow">COMPLETE</span>
-      <h1 class="title" id="done-title">참여가 완료되었습니다.</h1>
-      <p class="lead">GIFT Festa 2026에 참여해 주셔서 감사합니다.</p>
-      <div class="miracle" style="margin-top:26px">Miracle DIMA</div>
-      <div class="button-stack"><button class="btn btn-primary" type="button" data-action="home">처음 화면으로</button></div>
+    return `<section class="screen center" aria-labelledby="done-title" style="padding-top: 10vh;">
+      <div class="complete-check inline-icon" style="transform: scale(1.1); margin-bottom: 24px;">${icon("check")}</div>
+      <span class="eyebrow" style="margin-bottom: 16px; display: inline-block;">COMPLETE</span>
+      <h1 class="title" id="done-title" style="margin-bottom: 20px;">참여가 완료되었습니다.</h1>
+      <p class="lead" style="margin-bottom: 40px;">GIFT Festa 2026에 참여해 주셔서 감사합니다.</p>
+      
+      <div class="miracle" style="margin-top: 50px; margin-bottom: 50px; font-size: 32px;">Miracle DIMA</div>
+      
+      <div class="button-stack">
+        <button class="btn btn-primary" type="button" data-action="home">처음 화면으로</button>
+      </div>
     </section>`;
   }
 
@@ -1039,19 +1043,66 @@ async function submitFinalData() {
       navigate(state.stamps.length === 4 ? "stampbook" : "start");
     }
     if (action === "confirm-final") {
-      // 확인 버튼 누를 시 이미지 다운로드 자동 실행
       const canvas = document.createElement("canvas");
-      canvas.width = 600; canvas.height = 400;
+      canvas.width = 600; 
+      canvas.height = 480;
       const ctx = canvas.getContext("2d");
 
-      // 배경 및 텍스트 렌더링
-      ctx.fillStyle = "#100f16"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "#fff"; ctx.font = "20px sans-serif";
-      ctx.fillText("GIFT Festa 2026 확인증", 30, 50);
-      ctx.fillText(`이름: ${state.participant.name}`, 30, 100);
-      ctx.fillText(`학번: ${state.participant.studentId}`, 30, 140);
-      ctx.fillText(`인증코드: ${(state.idempotencyKey || "").split('-')[0]}`, 30, 180);
-      ctx.fillText(`저장일시: ${new Date().toLocaleString()}`, 30, 220);
+      // 1. 캔버스 배경 (다크 테마)
+      ctx.fillStyle = "#100f16"; 
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // 2. 보드(카드) 테두리 및 배경 그리기
+      const rx = 30, ry = 30, rw = 540, rh = 420, radius = 15;
+      ctx.beginPath();
+      ctx.moveTo(rx + radius, ry);
+      ctx.lineTo(rx + rw - radius, ry);
+      ctx.quadraticCurveTo(rx + rw, ry, rx + rw, ry + radius);
+      ctx.lineTo(rx + rw, ry + rh - radius);
+      ctx.quadraticCurveTo(rx + rw, ry + rh, rx + rw - radius, ry + rh);
+      ctx.lineTo(rx + radius, ry + rh);
+      ctx.quadraticCurveTo(rx, ry + rh, rx, ry + rh - radius);
+      ctx.lineTo(rx, ry + radius);
+      ctx.quadraticCurveTo(rx, ry, rx + radius, ry);
+      ctx.closePath();
+      
+      ctx.fillStyle = "#1c1b29"; // 카드 내부 배경색
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "#B044FF"; // 포인트 컬러 테두리
+      ctx.stroke();
+
+      // 3. 타이틀
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#ffffff"; 
+      ctx.font = "bold 32px sans-serif";
+      ctx.fillText("GIFT Festa 2026 확인증", canvas.width / 2, 95);
+
+      // 4. 타이틀 아래 구분선
+      ctx.beginPath();
+      ctx.moveTo(70, 130);
+      ctx.lineTo(530, 130);
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = "#444444";
+      ctx.stroke();
+
+      // 5. 항목 텍스트 (글머리 기호 및 정렬)
+      ctx.textAlign = "left";
+      ctx.font = "22px sans-serif";
+      ctx.fillStyle = "#eeeeee";
+      
+      const startX = 80;
+      let startY = 190;
+      const lineH = 50;
+
+      ctx.fillText(`▪ 이름: ${state.participant.name}`, startX, startY); startY += lineH;
+      ctx.fillText(`▪ 학번: ${state.participant.studentId}`, startX, startY); startY += lineH;
+      ctx.fillText(`▪ 인증코드: ${(state.idempotencyKey || "").split('-')[0]}`, startX, startY); startY += lineH;
+      
+      // 저장 일시는 약간 작고 흐리게 처리
+      ctx.font = "20px sans-serif";
+      ctx.fillStyle = "#aaaaaa";
+      ctx.fillText(`▪ 저장일시: ${new Date().toLocaleString()}`, startX, startY + 30);
 
       // 다운로드 트리거
       const link = document.createElement("a");
@@ -1059,7 +1110,7 @@ async function submitFinalData() {
       link.href = canvas.toDataURL("image/png");
       link.click();
 
-      // 기존 화면 전환 동작 실행
+      // 화면 전환
       closeModal(false);
       navigate("done", true);
     }
