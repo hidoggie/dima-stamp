@@ -1389,7 +1389,3 @@ html, body {
   color: #d9c8ff;
   font-size: 14px;
 }
-
-#guide-icon[data-icon="thumbs_up"] {
-    transform: perspective(500px) rotateY(10deg);
-}

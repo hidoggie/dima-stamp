@@ -123,10 +123,10 @@ h1 { font-size: 26px; margin: 0 0 8px; line-height: 1.3; }
 .tab-icon::before { content: ""; display: block; width: 100%; height: 100%;
   background-repeat: no-repeat; background-position: center; background-size: contain; }
 .tab-icon[data-icon="thumbs_up"]::before {
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' fill='none' stroke='white' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'><path d='M20 28h-8a4 4 0 0 0-4 4v18a4 4 0 0 0 4 4h8'/><path d='M20 28l10-18a5 5 0 0 1 9 4l-3 12h13a6 6 0 0 1 6 7l-4 15a7 7 0 0 1-7 5H20'/></svg>");
+  background-image: url("assets/pose-thumbsup-white.png");
 }
 .tab-icon[data-icon="victory"]::before {
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' fill='none' stroke='white' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'><path d='M24 30V10a4 4 0 0 1 8 0v16'/><path d='M32 26V8a4 4 0 0 1 8 0v18'/><path d='M18 34l-2-8a4 4 0 0 1 7.7-2.1'/><path d='M18 34v10a12 12 0 0 0 12 12h6a12 12 0 0 0 12-12V30a4 4 0 0 0-8-1'/></svg>");
+  background-image: url("assets/pose-victory-white.png");
 }
 
 .steps { margin: 0 0 26px; padding-left: 18px; color: #d7d5e0; font-size: 13.5px; line-height: 1.9; }
@@ -185,20 +185,20 @@ h1 { font-size: 26px; margin: 0 0 8px; line-height: 1.3; }
   background-size: contain;
 }
 .guide-icon[data-icon="thumbs_up"] {
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><path d='M20 28h-8a4 4 0 0 0-4 4v18a4 4 0 0 0 4 4h8'/><path d='M20 28l10-18a5 5 0 0 1 9 4l-3 12h13a6 6 0 0 1 6 7l-4 15a7 7 0 0 1-7 5H20'/></svg>");
+  background-image: url("assets/pose-thumbsup-white.png");
 }
 .guide-icon[data-icon="victory"] {
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><path d='M24 30V10a4 4 0 0 1 8 0v16'/><path d='M32 26V8a4 4 0 0 1 8 0v18'/><path d='M18 34l-2-8a4 4 0 0 1 7.7-2.1'/><path d='M18 34v10a12 12 0 0 0 12 12h6a12 12 0 0 0 12-12V30a4 4 0 0 0-8-1'/></svg>");
+    background-image: url("assets/pose-victory-white.png");
 }
 .guide-icon.matched {
   opacity: 1;
   filter: drop-shadow(0 0 16px rgba(34,197,94,0.9));
 }
 .guide-icon.matched[data-icon="thumbs_up"] {
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' fill='none' stroke='%2322c55e' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'><path d='M20 28h-8a4 4 0 0 0-4 4v18a4 4 0 0 0 4 4h8'/><path d='M20 28l10-18a5 5 0 0 1 9 4l-3 12h13a6 6 0 0 1 6 7l-4 15a7 7 0 0 1-7 5H20'/></svg>");
+  background-image: url("assets/pose-thumbsup-green.png");
 }
 .guide-icon.matched[data-icon="victory"] {
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' fill='none' stroke='%2322c55e' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'><path d='M24 30V10a4 4 0 0 1 8 0v16'/><path d='M32 26V8a4 4 0 0 1 8 0v18'/><path d='M18 34l-2-8a4 4 0 0 1 7.7-2.1'/><path d='M18 34v10a12 12 0 0 0 12 12h6a12 12 0 0 0 12-12V30a4 4 0 0 0-8-1'/></svg>");
+  background-image: url("assets/pose-victory-green.png");
 }
 
 #ar-mount { position: absolute; inset: 0; }
