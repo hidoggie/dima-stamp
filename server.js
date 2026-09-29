@@ -118,11 +118,11 @@ async function initDB() {
 
     const dimaCheck = await pool.query(`SELECT id FROM dima_stampspot LIMIT 1`);
     if (dimaCheck.rows.length === 0 && eventId) {
-    // const FESTIVAL_LAT = 37.0589182; // DIMA   
-    //  const FESTIVAL_LNG = 127.3581239; // DIMA
+      const FESTIVAL_LAT = 37.0589182; // DIMA   
+      const FESTIVAL_LNG = 127.3581239; // DIMA
 
-      const FESTIVAL_LAT = 37.4895143;   //테스트용
-      const FESTIVAL_LNG = 126.9555654;  //테스트용
+     // const FESTIVAL_LAT = 37.4895143;   //테스트용
+     // const FESTIVAL_LNG = 126.9555654;  //테스트용
 
       await pool.query(
         `
