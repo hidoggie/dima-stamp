@@ -773,67 +773,43 @@ app.get("/api/admin/surveys", authenticateAdmin, verifyStatAccess, async (req, r
 });
 
 // =======================================================
-// [대시보드 기능 API - 장기 이벤트 최적화 버전]
+// [대시보드 기능 API - GIFT Festa 2026 맞춤형]
 // =======================================================
 
 // 🌟 이벤트 공식 오픈일 (이 날짜 이후 데이터만 집계)
-const EVENT_START_DATE = "2026-09-01 00:00:00+09";
+const EVENT_START_DATE = "2026-09-29 00:00:00+09";
 
+// 1. 대시보드 요약 통계
 app.get("/api/admin/dashboard-stats", authenticateAdmin, verifyStatAccess, async (req, res) => {
     try {
         let { start_date, end_date } = req.query;
         
-        // 날짜 파라미터가 넘어오면 해당 일자 기준, 없으면 전체 기간(EVENT_START_DATE ~ 2099년)
         const startParam = start_date ? `${start_date} 00:00:00+09` : EVENT_START_DATE;
         const endParam = end_date ? `${end_date} 23:59:59+09` : '2099-12-31 23:59:59+09';
 
-        // 1. 기간 내 경품 발급 내역 (티켓)
-        const ticketRes = await pool.query(`
-            SELECT ticket_type, COUNT(*) as issue_count 
-            FROM dima_ticket_logs 
-            WHERE issued_at >= $1 AND issued_at <= $2 
-            GROUP BY ticket_type
-        `, [startParam, endParam]);
-        
-        // 2. 기간 내 거점별 방문/완료 현황
-        const dimaRes = await pool.query(`
-            SELECT l.id, l.name, 
-                   COUNT(s.id) as total_arrivals, 
-                   SUM(CASE WHEN s.status = 'PHOTO_SUBMITTED' THEN 1 ELSE 0 END) as total_completions 
-            FROM dima_stampspot l 
-            LEFT JOIN dima_stamps s ON l.id = s.dima_id AND s.acquired_at >= $1 AND s.acquired_at <= $2 
-            GROUP BY l.id, l.name 
-            ORDER BY l.id ASC
-        `, [startParam, endParam]);
-        
-        // 3. 재고 현황 (재고는 특정 기간 조회가 무의미하므로 전체 실시간 현황을 가져옵니다)
-        const prizeRes = await pool.query("SELECT id, name, total_quantity, remaining_quantity FROM dima_prizes ORDER BY id ASC");
-        
-        // 4. 기간 내 5개 완주자 수
+        // 기간 내 4개 스탬프 완주자 수 (4개 존 모두 완료)
         const completedUsers = await pool.query(`
             SELECT COUNT(*) as cnt FROM (
                 SELECT user_id FROM dima_stamps 
                 WHERE status = 'PHOTO_SUBMITTED' AND acquired_at >= $1 AND acquired_at <= $2 
-                GROUP BY user_id HAVING COUNT(*) >= 5
+                GROUP BY user_id HAVING COUNT(*) >= 4
             ) as t
         `, [startParam, endParam]);
         
-        // 5. 기간 내 총 경품 수령자 수
-        const prizeRecipients = await pool.query(`
-            SELECT COUNT(DISTINCT passport_id) as cnt 
-            FROM dima_ticket_logs 
-            WHERE issued_at >= $1 AND issued_at <= $2
+        // 기간 내 설문 완료자 수
+        const surveyUsers = await pool.query(`
+            SELECT COUNT(*) as cnt 
+            FROM dima_surveys 
+            WHERE created_at >= $1 AND created_at <= $2 AND is_deleted = FALSE
         `, [startParam, endParam]);
 
         res.json({
             success: true,
-            tickets: ticketRes.rows, 
-            stampspot: dimaRes.rows,
-            prizes: prizeRes.rows,
             completed_users: completedUsers.rows[0].cnt,
-            prize_recipients: prizeRecipients.rows[0].cnt
+            survey_recipients: surveyUsers.rows[0].cnt
         });
     } catch (err) { 
+        console.error(err);
         res.status(500).json({ error: "통계 조회 실패" }); 
     }
 });
@@ -871,6 +847,7 @@ app.post("/api/admin/inventory/update", authenticateAdmin, verifyStatAccess, asy
     }
 });
 
+// 2. 시간대별 통계 (최근 순 정렬)
 app.get("/api/admin/hourly-stats", authenticateAdmin, verifyStatAccess, async (req, res) => {
     try {
         let { start_date, end_date } = req.query;
@@ -878,54 +855,42 @@ app.get("/api/admin/hourly-stats", authenticateAdmin, verifyStatAccess, async (r
         const startParam = start_date ? `${start_date} 00:00:00+09` : EVENT_START_DATE;
         const endParam = end_date ? `${end_date} 23:59:59+09` : '2099-12-31 23:59:59+09';
 
-        // 1. 테이블의 동적 열 생성을 위해 전체 경품 목록을 먼저 가져옵니다.
-        const prizeListRes = await pool.query("SELECT name FROM dima_prizes ORDER BY id ASC");
-        const prizeNames = prizeListRes.rows.map(r => r.name);
-
         const query = `
-            WITH starters AS (
-                SELECT hr, COUNT(*) as start_count FROM (
-                    SELECT DATE_TRUNC('hour', MIN(acquired_at)) as hr
-                    FROM dima_stamps GROUP BY user_id
-                ) s GROUP BY hr
+            WITH completers AS (
+                SELECT DATE_TRUNC('hour', MAX(acquired_at)) as hr
+                FROM dima_stamps 
+                WHERE status = 'PHOTO_SUBMITTED'
+                GROUP BY user_id HAVING COUNT(*) >= 4
             ),
-            completers AS (
-                SELECT hr, COUNT(*) as complete_count FROM (
-                    SELECT DATE_TRUNC('hour', MAX(acquired_at)) as hr
-                    FROM dima_stamps WHERE status = 'PHOTO_SUBMITTED'
-                    GROUP BY user_id HAVING COUNT(*) >= 5
-                ) c GROUP BY hr
+            surveyers AS (
+                SELECT DATE_TRUNC('hour', created_at) as hr
+                FROM dima_surveys
+                WHERE is_deleted = FALSE
             ),
-            prizes AS (
-                SELECT hr, SUM(cnt) as prize_count, json_object_agg(ticket_type, cnt) as prize_details
-                FROM (
-                    SELECT DATE_TRUNC('hour', issued_at) as hr, ticket_type, COUNT(*) as cnt
-                    FROM dima_ticket_logs 
-                    GROUP BY DATE_TRUNC('hour', issued_at), ticket_type
-                ) p_sub
-                GROUP BY hr
+            completers_grouped AS (
+                SELECT hr, COUNT(*) as complete_count FROM completers GROUP BY hr
+            ),
+            surveyers_grouped AS (
+                SELECT hr, COUNT(*) as survey_count FROM surveyers GROUP BY hr
             ),
             all_hours AS (
-                SELECT hr FROM starters
-                UNION SELECT hr FROM completers
-                UNION SELECT hr FROM prizes
+                SELECT hr FROM completers_grouped
+                UNION 
+                SELECT hr FROM surveyers_grouped
             )
             SELECT 
                 TO_CHAR(a.hr, 'YYYY-MM-DD HH24:00') || ' ~ ' || TO_CHAR(a.hr + interval '1 hour', 'HH24:00') as time_range,
-                COALESCE(s.start_count, 0) as start_count,
                 COALESCE(c.complete_count, 0) as complete_count,
-                COALESCE(p.prize_count, 0) as prize_count,
-                COALESCE(p.prize_details, '{}'::json) as prize_details
+                COALESCE(s.survey_count, 0) as survey_count
             FROM all_hours a
-            LEFT JOIN starters s ON a.hr = s.hr
-            LEFT JOIN completers c ON a.hr = c.hr
-            LEFT JOIN prizes p ON a.hr = p.hr
+            LEFT JOIN completers_grouped c ON a.hr = c.hr
+            LEFT JOIN surveyers_grouped s ON a.hr = s.hr
             WHERE a.hr >= $1 AND a.hr <= $2
             ORDER BY a.hr DESC
         `;
         
         const result = await pool.query(query, [startParam, endParam]);
-        res.json({ success: true, stats: result.rows, prizeNames }); // prizeNames 함께 반환
+        res.json({ success: true, stats: result.rows });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: "시간대별 통계 조회 실패" });
