@@ -565,7 +565,7 @@ img {
 }
 
 .stamp-row.locked {
-  opacity: 0.42;
+  opacity: 0.7;
   filter: grayscale(1);
 }
 
