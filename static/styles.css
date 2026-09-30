@@ -565,8 +565,18 @@ img {
 }
 
 .stamp-row.locked {
-  opacity: 0.7;
   filter: grayscale(1);
+}
+
+.stamp-row.locked > div,
+.stamp-row.locked .stamp-status {
+  opacity: 0.5;
+}
+
+/* 스탬프 이미지: 명도 차이를 줄이고(contrast) 전체를 밝게(brightness) */
+.stamp-row.locked img {
+  filter: grayscale(1) contrast(0.45) brightness(1.7);
+  opacity: 0.55;
 }
 
 .stamp-row h3,
