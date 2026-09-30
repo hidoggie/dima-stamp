@@ -758,6 +758,20 @@ app.post("/api/admin/manual_insert", authenticateAdmin, verifyStatAccess, async 
   }
 });
 
+app.get("/api/admin/surveys", authenticateAdmin, verifyStatAccess, async (req, res) => {
+    try {
+        const surveyRes = await pool.query(`
+            SELECT id, user_id, idempotency_key, q1, q2, q3, q4, q5, name, student_id, department, phone, created_at 
+            FROM dima_surveys 
+            WHERE is_deleted = FALSE
+            ORDER BY created_at DESC
+        `);
+        res.json({ success: true, surveys: surveyRes.rows });
+    } catch (err) {
+        res.status(500).json({ error: "설문 데이터 조회 실패" });
+    }
+});
+
 // =======================================================
 // [대시보드 기능 API - 장기 이벤트 최적화 버전]
 // =======================================================
