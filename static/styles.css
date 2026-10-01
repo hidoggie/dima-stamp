@@ -1382,7 +1382,7 @@ html, body {
   margin: 14px 0 10px;
   padding: 11px 14px;
   color: #ffffff;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 900;
   line-height: 1.35;
   letter-spacing: -0.01em;
@@ -1397,5 +1397,187 @@ html, body {
 .zone-choose::after {
   content: " ▼";
   color: #d9c8ff;
+  font-size: 12px;
+}
+
+/* ===== 축제 안내 (프로그램 일정표 / 장소 안내) ===== */
+.now-next {
+  display: flex;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0;
+  overflow: hidden;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  color: #fff;
+  text-align: left;
+  background: linear-gradient(135deg, rgba(229, 0, 127, 0.16), rgba(128, 80, 255, 0.14));
+  border: 1px solid var(--line-bright);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.now-next-label {
+  flex-shrink: 0;
+  padding: 4px 9px;
+  color: #fff;
+  background: #3a3556;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.06em;
+}
+
+.now-next-label.live {
+  position: relative;
+  padding-left: 19px;
+  background: var(--g);
+}
+
+.now-next-label.live::before {
+  position: absolute;
+  top: 50%;
+  left: 8px;
+  width: 6px;
+  height: 6px;
+  margin-top: -3px;
+  background: #fff;
+  border-radius: 50%;
+  content: "";
+  animation: live-dot 1.2s ease-in-out infinite;
+}
+
+@keyframes live-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+
+.now-next-body {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.now-next-text,
+.now-next-sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.now-next-text {
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.now-next-sub {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.now-next svg,
+.map-hint svg {
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.4;
+}
+
+.now-next svg {
+  width: 18px;
+  height: 18px;
+  color: #d9c8ff;
+}
+
+.map-hint {
+  position: absolute;
+  z-index: 2;
+  right: 8px;
+  bottom: 8px;
+  display: inline-flex;
+  box-sizing: border-box !important;
+  min-height: 34px;
+  align-items: center;
+  gap: 2px;
+  margin: 0;
+  padding: 6px 9px 6px 12px;
+  color: #fff;
+  background: rgba(10, 9, 20, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 999px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.map-hint:active {
+  background: rgba(176, 68, 255, 0.85);
+}
+
+.map-hint svg {
+  width: 13px;
+  height: 13px;
+}
+
+/* 스탬프북 버튼: Zone 카드(밝은 파스텔)보다 한 단계 아래 무게의 브랜드 보라 그라데이션 */
+.app-main .btn-stampbook {
+  color: #fff;
+  background: linear-gradient(115deg, #5b34d6 0%, #7c3fe6 55%, #9a3fd8 100%);
+  border: 1px solid rgba(214, 186, 255, 0.55);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 8px 20px rgba(110, 60, 230, 0.28);
+}
+
+.app-main .btn-stampbook svg {
+  width: 18px;
+  height: 18px;
+  margin-left: 0 !important;
+}
+
+/* 안내 이미지 팝업 */
+.modal .guide-title {
+  margin: 4px 44px 4px;
+  font-size: 20px;
+}
+
+.modal .guide-hint {
+  margin: 0 0 10px;
+  font-size: 12px !important;
+}
+
+.guide-viewer {
+  max-height: 60dvh;
+  overflow: auto;
+  background: #fafafa;
+  border-radius: 12px;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.guide-viewer img {
+  width: 100%;
+  max-width: none;
+  cursor: zoom-in;
+}
+
+.guide-viewer img.zoomed {
+  width: 230%;
+  cursor: zoom-out;
+}
+
+.guide-modal-actions {
+  margin-top: 12px !important;
+}
+
+.modal .guide-modal-actions .btn {
   font-size: 14px;
 }

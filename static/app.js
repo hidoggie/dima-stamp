@@ -101,6 +101,116 @@
   };
 
   const ORDER = ["G", "I", "F", "T"];
+
+  // ===== 축제 안내 (안내1: 프로그램 일정표 / 안내2: 장소 안내) =====
+  const GUIDES = {
+    schedule: { src: "assets/guide-schedule.jpg", title: "축제 프로그램 일정표" },
+    venue: { src: "assets/guide-venue.jpg", title: "축제 장소 안내" },
+  };
+
+  // [시작시각, 프로그램, 장소, 종료시각(선택, 없으면 60분)]
+  const PROGRAM = {
+    "2026-10-07": [
+      ["11:00", "학과 대항 OX 퀴즈전 & 개회식", "한울마당"],
+      ["12:00", "난타 공연 | 연극과", "한울마당"],
+      ["13:00", "갈라쇼 | 뮤지컬과", "한울마당"],
+      ["14:00", "재즈 Hard bop 공연 | 기악과", "한울마당"],
+      ["15:00", "싱어송라이터 Flows 공연 | 작곡과", "한울마당"],
+      ["16:00", "보컬 MIXTAPE 공연 | 보컬과", "한울마당"],
+      ["17:00", "HEADLINER 공연 | K-POP과", "한울마당"],
+      ["18:00", "DJ Performance | RISER", "한울마당"],
+    ],
+    "2026-10-08": [
+      ["11:00", "DIMA BEST 단편", "콘서트홀"],
+      ["14:00", "DIMA BEST 다큐", "콘서트홀"],
+      ["15:00", "DIMA BEST MV & 예능", "콘서트홀"],
+      ["16:00", "DIMA BEST 광고", "콘서트홀"],
+    ],
+  };
+  const FESTA_DAYS = Object.keys(PROGRAM).sort();
+
+  function dateKey(d) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+
+  function toMinutes(t) {
+    const [h, m] = t.split(":").map(Number);
+    return h * 60 + m;
+  }
+
+  function nowNextInfo(now = new Date()) {
+    const key = dateKey(now);
+    const list = PROGRAM[key];
+
+    if (!list) {
+      if (key < FESTA_DAYS[0]) {
+        const [y, m, d] = FESTA_DAYS[0].split("-").map(Number);
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const days = Math.round((new Date(y, m - 1, d) - today) / 86400000);
+        return { label: `D-${days}`, text: "10.7(수)~10.8(목) 프로그램 일정 보기" };
+      }
+      return { label: "일정", text: "GIFT FESTA 2026 프로그램 일정표 보기" };
+    }
+
+    const nowMin = now.getHours() * 60 + now.getMinutes();
+    const current = list.find(([start, , , end]) => {
+      const s = toMinutes(start);
+      const e = end ? toMinutes(end) : s + 60;
+      return s <= nowMin && nowMin < e;
+    });
+    const next = list.find(([start]) => toMinutes(start) > nowMin);
+
+    if (current) {
+      const after = next && next !== current ? next : null;
+      return {
+        label: "NOW",
+        text: `${current[0]} ${current[1]} · ${current[2]}`,
+        sub: after ? `다음 ${after[0]} ${after[1]}` : "",
+      };
+    }
+    if (next) return { label: "NEXT", text: `${next[0]} ${next[1]} · ${next[2]}` };
+    return { label: "오늘", text: "오늘 무대 프로그램이 모두 끝났어요 · 전체 일정 보기" };
+  }
+
+  function nowNextInner() {
+    const info = nowNextInfo();
+    return `<span class="now-next-label${info.label === "NOW" ? " live" : ""}">${escapeHtml(info.label)}</span>
+      <span class="now-next-body">
+        <span class="now-next-text">${escapeHtml(info.text)}</span>
+        ${info.sub ? `<span class="now-next-sub">${escapeHtml(info.sub)}</span>` : ""}
+      </span>
+      ${icon("arrow")}`;
+  }
+
+  function nowNextHtml() {
+    return `<button class="now-next" type="button" data-action="guide" data-guide="schedule" aria-label="축제 프로그램 일정표 보기">
+      ${nowNextInner()}
+    </button>`;
+  }
+
+  // 시작 화면에 머무는 동안 1분마다 NOW / NEXT 갱신
+  setInterval(() => {
+    if (state.screen !== "start") return;
+    const el = document.querySelector(".now-next");
+    if (el) el.innerHTML = nowNextInner();
+  }, 60 * 1000);
+
+  function showGuide(key) {
+    const guide = GUIDES[key];
+    if (!guide) return;
+    const other = key === "schedule" ? "venue" : "schedule";
+    showModal(
+      `<h2 id="guide-title" class="guide-title">${guide.title}</h2>
+      <p class="guide-hint">이미지를 탭하면 크게 볼 수 있어요</p>
+      <div class="guide-viewer"><img src="${guide.src}" alt="${guide.title}" /></div>
+      <div class="button-stack guide-modal-actions">
+        <button class="btn" type="button" data-action="guide" data-guide="${other}">${GUIDES[other].title} 보기</button>
+        <button class="btn btn-primary" type="button" data-action="close-modal">닫기</button>
+      </div>`,
+      "guide-title",
+      "#B044FF",
+    );
+  }
   const SURVEY_OPTIONS = [
     "매우 그렇다",
     "그렇다",
@@ -190,6 +300,10 @@
         '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>',
       clock:
         '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v6l4 2"/></svg>',
+      calendar:
+        '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>',
+      pin: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-6.1-6.5-11.2a6.5 6.5 0 0 1 13 0C18.5 14.9 12 21 12 21Z"/><circle cx="12" cy="9.8" r="2.4"/></svg>',
+      book: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5Z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/></svg>',
     };
     return icons[name] || "";
   }
@@ -264,8 +378,12 @@
         캠퍼스 곳곳의 ${giftLetters()} Zone을 찾아 퀴즈에 참여하세요.
         <strong>4개의 스탬프를 모아 GIFT를 완성하세요!</strong>
       </p>
+      ${nowNextHtml()}
       <div class="map-card">
-        <div class="map-window"><img src="assets/campus-zone-map.png" alt="DIMA 캠퍼스 G, I, F, T Zone 배치도" /></div>
+        <div class="map-window">
+          <img src="assets/campus_map_banners_color.jpg" alt="DIMA 캠퍼스 G, I, F, T Zone 배치도" />
+          <button class="map-hint" type="button" data-action="guide" data-guide="venue">축제 장소 안내 ${icon("arrow")}</button>
+        </div>
       </div>
       <p class="zone-choose">도전할 Zone을 직접 선택해주세요.</p>
       <div class="zone-grid" aria-label="GIFT Zone 선택">${ORDER.map(zoneCard).join("")}</div>
@@ -277,7 +395,7 @@
           </button>`
             : ""
         }
-        <button class="btn" type="button" data-action="stampbook">내 스탬프북 보기</button>
+        <button class="btn btn-stampbook" type="button" data-action="stampbook">${icon("book")} 내 스탬프북 보기</button>
       </div>
     </section>`;
   }
@@ -946,7 +1064,9 @@ function handleParticipant(form) {
     if (action === "next-zone") checkGPSAndEnterZone(nextIncompleteZone());
     if (action === "complete") navigate("complete");
     if (action === "survey") navigate("survey1");
+    if (action === "guide") showGuide(control.dataset.guide);
   });
+
 
   header.addEventListener("click", (event) => {
     const control = event.target.closest("[data-action]");
@@ -1070,10 +1190,31 @@ async function submitFinalData() {
 }
 
   modalRoot.addEventListener("click", (event) => {
+    // 안내 이미지: 탭하면 확대 / 다시 탭하면 원래 크기
+    const guideImg = event.target.closest(".guide-viewer img");
+    if (guideImg) {
+      const viewer = guideImg.parentElement;
+      const rect = guideImg.getBoundingClientRect();
+      const rx = (event.clientX - rect.left) / rect.width;
+      const ry = (event.clientY - rect.top) / rect.height;
+      const zoomed = guideImg.classList.toggle("zoomed");
+      viewer.classList.toggle("zoomed", zoomed);
+      // 탭한 지점이 화면 가운데 오도록 스크롤
+      requestAnimationFrame(() => {
+        viewer.scrollLeft = rx * guideImg.offsetWidth - viewer.clientWidth / 2;
+        viewer.scrollTop = ry * guideImg.offsetHeight - viewer.clientHeight / 2;
+      });
+      return;
+    }
+
     const control = event.target.closest("[data-action]");
     if (!control) return;
     const action = control.dataset.action;
     if (action === "close-modal") closeModal();
+    if (action === "guide") {
+      closeModal(false);
+      showGuide(control.dataset.guide);
+    }
     if (action === "after-stamp") {
       closeModal(false);
       navigate(state.stamps.length === 4 ? "stampbook" : "start");
