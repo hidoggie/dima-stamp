@@ -584,12 +584,14 @@ async function initAdminDB() {
     );
 
     // 2. 최고 관리자 초기 계정 강제 세팅
-    await pool.query(`
+    await pool.query(
+      `
             INSERT INTO dima_admins (login_id, login_pw, role) 
-            VALUES ('superadmin', 'admin1234!', 'SUPER_ADMIN')
-            ON CONFLICT (login_id) 
-            DO UPDATE SET login_pw = 'admin1234!', role = 'SUPER_ADMIN';
-        `);
+            VALUES ('superadmin', $1, 'SUPER_ADMIN')
+            ON CONFLICT (login_id) DO NOTHING;
+        `,
+      [process.env.ADMIN_INIT_PW || "admin1234!"],
+    );
 
     // 관리자 경품(이용권) 발급 이력 테이블
     await pool.query(`
