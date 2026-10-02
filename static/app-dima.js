@@ -929,7 +929,7 @@ function stampRow(id) {
 
   function finishToDone() {
     closeModal(false);
-    navigate("done", true);
+    navigate(state.screen === "done" ? "start" : "done", true);
   }
 
   function saveCertificate() {
@@ -974,7 +974,7 @@ function stampRow(id) {
       </div>`,
       "cert-title",
       "#B044FF",
-      false,
+      state.screen === "done",
     );
   }
 
@@ -1343,10 +1343,9 @@ async function submitFinalData() {
       navigate(state.stamps.length === 4 ? "stampbook" : "start");
     }
 
-    if (action === "confirm-final") {
-      if (action === "confirm-final") saveCertificate();
-      if (action === "cert-done") finishToDone();
-    }
+    if (action === "confirm-final") saveCertificate();
+    if (action === "cert-done") finishToDone();
+
 
     if (action === "reset") {
       showToast("스탬프 디자인 상태를 초기화했습니다.");
