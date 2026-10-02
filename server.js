@@ -749,7 +749,7 @@ app.post("/api/admin/manual_insert", authenticateAdmin, verifyStatAccess, async 
     await pool.query(`
       INSERT INTO dima_surveys (user_id, idempotency_key, name, student_id) 
       VALUES ($1, $2, $3, $4)
-      ON CONFLICT (idempotency_key) DO NOTHING
+      ON CONFLICT (user_id) DO NOTHING
     `, [user_id, idempotency_key, name, student_id]);
 
     res.json({ success: true, message: "관리자 권한으로 수동 등록이 완료되었습니다." });
