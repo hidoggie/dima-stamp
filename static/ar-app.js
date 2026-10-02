@@ -1,9 +1,21 @@
 const IMAGE_TIMEOUT_MS = 25000;
-const INTRO_CLIP = "01_Hatch_Once";   
+const INTRO_CLIP = "01_Hatch_Once";   // GLB 클립 이름 (대소문자 달라도 자동 보정)
 const LOOP_CLIP = "02_Loop";
-const INTRO_FALLBACK_MS = 8000;       
-const LOST_GRACE_MS = 800;            
+const INTRO_FALLBACK_MS = 8000;       // 클립 길이를 못 읽었을 때만 쓰는 안전장치
+const LOST_GRACE_MS = 800;            // 손떨림으로 잠깐 놓친 건 무시하는 유예 시간
+const SCAN_READY_DELAY_MS = 500;      // AR 시작 직후 인식 대기 (그 사이 인식은 보류 후 처리)
+
+// 부화 재생 조절: 앞 0.9초 건너뛰고, 깨지기 직전(6.4초)까지 2.9배속 → 인식 후 약 2초에 깨짐
 const HATCH_PACE = { skipTo: 0.9, fastUntil: 6.4, speed: 2.9 };
+
+// 부화 진동 타이밍 (원본 애니메이션 시간 기준 — 재생 속도를 조절해도 자동으로 맞춰짐)
+// 진동을 끄려면 배열을 비우면 됨: const HATCH_HAPTICS = [];
+const HATCH_HAPTICS = [
+  { at: 1.75, pattern: [35] },                    // 첫 균열 (톡)          → 실제 약 0.3초
+  { at: 3.8,  pattern: [40, 60, 40] },            // 균열 번짐 (톡-톡)     → 실제 약 1.0초
+  { at: 5.67, pattern: [30, 50, 30, 50, 30] },    // 균열 확산 (다다닥)    → 실제 약 1.6초
+  { at: 6.46, pattern: [250] },                   // 확 깨짐 (길게)        → 실제 약 2.0초
+];
 
 const ALL_TARGETS = ["G-target", "I-target", "F-target", "T-target"];
 
@@ -18,6 +30,7 @@ const state = {
   animFinishedHandler: null,
   lostTimer: null,
   paceRafId: null,
+  hapticRafId: null,
 };
 
 const $ = (sel) => document.querySelector(sel);
@@ -122,6 +135,64 @@ function goToQuiz(targetName = state.currentTargetName) {
 }
 
 // ---------------------------------------------------------------------------
+// 진동 (안드로이드: Vibration API / iOS 18+: switch 체크박스 햅틱 우회)
+// ---------------------------------------------------------------------------
+let iosHapticLabel = null;
+
+function iosTick() {
+  try {
+    if (!iosHapticLabel) {
+      const label = document.createElement("label");
+      label.setAttribute("aria-hidden", "true");
+      label.style.display = "none";
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.setAttribute("switch", "");
+      label.appendChild(input);
+      document.body.appendChild(label);
+      iosHapticLabel = label;
+    }
+    iosHapticLabel.click();
+  } catch (e) { /* 미지원 기기는 조용히 무시 */ }
+}
+
+function haptic(pattern) {
+  if (typeof navigator.vibrate === "function") {
+    navigator.vibrate(pattern);
+    return;
+  }
+  // iOS: 진동 길이 대신 '톡' 횟수로 강약 표현 (약 70ms 진동당 1회)
+  const onTotal = pattern.filter((_, i) => i % 2 === 0).reduce((a, b) => a + b, 0);
+  const ticks = Math.min(4, Math.max(1, Math.round(onTotal / 70)));
+  for (let i = 0; i < ticks; i++) setTimeout(iosTick, i * 70);
+}
+
+function startHatchHaptics(entity) {
+  stopHatchHaptics();
+  if (!HATCH_HAPTICS.length) return;
+  let idx = 0;
+  const loop = () => {
+    if (!state.imageFound) return;
+    const action = entity.components["animation-mixer"]?.activeActions?.[0];
+    if (action) {
+      // 재생 조절로 앞부분을 건너뛰어도, 지난 시점의 진동은 건너뛰고 다음 것부터 울림
+      while (idx < HATCH_HAPTICS.length && action.time >= HATCH_HAPTICS[idx].at) {
+        haptic(HATCH_HAPTICS[idx].pattern);
+        idx++;
+      }
+    }
+    if (idx < HATCH_HAPTICS.length) state.hapticRafId = requestAnimationFrame(loop);
+  };
+  state.hapticRafId = requestAnimationFrame(loop);
+}
+
+function stopHatchHaptics() {
+  if (state.hapticRafId) cancelAnimationFrame(state.hapticRafId);
+  state.hapticRafId = null;
+  if (typeof navigator.vibrate === "function") navigator.vibrate(0); // 진행 중 진동 중단
+}
+
+// ---------------------------------------------------------------------------
 // 애니메이션
 // ---------------------------------------------------------------------------
 function findClip(entity, wanted) {
@@ -192,7 +263,8 @@ function playIntroThenLoop(entity) {
     loop: "once",
     clampWhenFinished: true,
   });
-  startHatchPacing(entity); // ← 재생 조절 (앞부분 건너뛰기 + 깨지기 전까지 빠르게)
+  startHatchPacing(entity);  // 재생 조절 (앞부분 건너뛰기 + 깨지기 전까지 빠르게)
+  startHatchHaptics(entity); // 균열·깨짐 타이밍에 맞춘 진동
 
   // 이벤트가 안 오는 경우 대비: 빨라진 재생 길이 + 0.5초 뒤 강제로 루프 전환
   const introClip = findClip(entity, INTRO_CLIP);
@@ -205,6 +277,7 @@ function playIntroThenLoop(entity) {
 
 function stopModel() {
   cancelAnimationFrame(state.paceRafId);
+  stopHatchHaptics();
   clearTimeout(state.animFallbackTimer);
   const entity = $("#treasure-entity");
   if (entity) {
@@ -251,18 +324,15 @@ async function enterImageScreen() {
   const sceneEl = mount.querySelector("a-scene");
   state.currentSceneEl = sceneEl;
 
+  // AR 시작 직후 잠깐 대기. 그 사이 인식된 배너는 버리지 않고 대기 후 처리
   let isReadyToScan = false;
   let pendingFound = null;
-  setTimeout(() => {
-    isReadyToScan = true;
-    if (pendingFound) { const n = pendingFound; pendingFound = null; onFound({ detail: { name: n } }); }
-  }, 500);
 
   const onFound = (e) => {
     const name = e.detail && e.detail.name;
     if (!ALL_TARGETS.includes(name)) return;
     if (!isReadyToScan) { pendingFound = name; return; }
-    if (name === state.currentTargetName) clearTimeout(state.lostTimer);
+    if (name === state.currentTargetName) clearTimeout(state.lostTimer); // 유예 시간 안에 다시 찾음
     onImageFound(name);
   };
 
@@ -273,7 +343,16 @@ async function enterImageScreen() {
     clearTimeout(state.lostTimer);
     state.lostTimer = setTimeout(resetToScanning, LOST_GRACE_MS);
   };
-  
+
+  setTimeout(() => {
+    isReadyToScan = true;
+    if (pendingFound) {
+      const n = pendingFound;
+      pendingFound = null;
+      onFound({ detail: { name: n } });
+    }
+  }, SCAN_READY_DELAY_MS);
+
   sceneEl.addEventListener("xrimagefound", onFound);
   sceneEl.addEventListener("xrimagelost", onLost);
 
