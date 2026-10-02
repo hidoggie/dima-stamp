@@ -1,284 +1,201 @@
-const MEDIAPIPE_CDN_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1";
+const IMAGE_TIMEOUT_MS = 25000;
+const INTRO_CLIP = "01_Hatch_Once";   // GLB 클립 이름 (대소문자 달라도 자동 보정)
+const LOOP_CLIP = "02_Loop";
+const INTRO_FALLBACK_MS = 8000;       // 클립 길이를 못 읽었을 때만 쓰는 안전장치
+const LOST_GRACE_MS = 800;            // 손떨림으로 잠깐 놓친 건 무시하는 유예 시간
 
-function registerCanvasScreenshotModule() {
-  const addModule = () => {
-    if (window.XR8 && window.XR8.CanvasScreenshot) {
-      XR8.addCameraPipelineModules([XR8.CanvasScreenshot.pipelineModule()]);
-    } else {
-      console.warn("XR8.CanvasScreenshot module not available — AR photo capture will be skipped.");
-    }
-  };
-  if (window.XR8) {
-    addModule();
-  } else {
-    window.addEventListener("xrloaded", addModule);
-  }
-}
-registerCanvasScreenshotModule();
+const ALL_TARGETS = ["G-target", "I-target", "F-target", "T-target"];
 
-// ---------------------------------------------------------------------------
-// Config
-// ---------------------------------------------------------------------------
-const MEDIAPIPE_WASM_BASE =
-  "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm";
-const MEDIAPIPE_MODEL_URL =
-  "https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task";
-
-// Maps our UI pose ids to MediaPipe's built-in gesture category names.
-const POSE_GESTURE_MAP = {
-  thumbs_up: "Thumb_Up",
-  victory: "Victory",
-};
-const POSE_LABEL_KO = {
-  thumbs_up: "엄지척 포즈",
-  victory: "V 포즈",
-};
-
-const GESTURE_CONFIDENCE_THRESHOLD = 0.65;
-const POSE_HOLD_MS = 1200; // how long the gesture must be held to pass
-const IMAGE_TIMEOUT_MS = 25000; // give up automatically after this long
-
-// ---------------------------------------------------------------------------
-// Shared state
-// ---------------------------------------------------------------------------
 const state = {
-  selectedPose: "thumbs_up",
-  facingMode: "environment",
-  poseStream: null,
-  gestureRecognizer: null,
-  poseRafId: null,
-  holdStartedAt: null,
-  poseDone: false,
-  poseFrameUrl: null,
-  imageFrameUrl: null,
-  resultPhotoBlob: null,
   currentSceneEl: null,
   xrConfigured: false,
-  imageTimeoutHandle: null,
   imageTimerRafId: null,
   imageStartedAt: null,
   imageFound: false,
   currentTargetName: null,
+  animFallbackTimer: null,
+  animFinishedHandler: null,
+  lostTimer: null,
 };
 
-// ---------------------------------------------------------------------------
-// DOM helpers
-// ---------------------------------------------------------------------------
 const $ = (sel) => document.querySelector(sel);
 
 let screens = {};
 
 function showScreen(name) {
-  Object.values(screens).forEach((el) => el.classList.remove("active"));
-  screens[name].classList.add("active");
-}
-
-// ---------------------------------------------------------------------------
-// STEP 1 — POSE AUTH (MediaPipe GestureRecognizer)
-// ---------------------------------------------------------------------------
-async function getGestureRecognizer() {
-  if (state.gestureRecognizer) return state.gestureRecognizer;
-  const { GestureRecognizer, FilesetResolver } = await import(MEDIAPIPE_CDN_URL);
-  const vision = await FilesetResolver.forVisionTasks(MEDIAPIPE_WASM_BASE);
-  state.gestureRecognizer = await GestureRecognizer.createFromOptions(vision, {
-    baseOptions: {
-      modelAssetPath: MEDIAPIPE_MODEL_URL,
-      delegate: "GPU",
-    },
-    runningMode: "VIDEO",
-    numHands: 1,
+  Object.values(screens).forEach((el) => {
+    if (el) el.classList.remove("active");
   });
-  return state.gestureRecognizer;
-}
-
-async function startPoseCamera() {
-  stopPoseCamera();
-  const video = $("#pose-video");
-  const constraints = {
-    audio: false,
-    video: {
-      facingMode: state.facingMode,
-      width: { ideal: 1280 },
-      height: { ideal: 720 },
-    },
-  };
-  const stream = await navigator.mediaDevices.getUserMedia(constraints);
-  state.poseStream = stream;
-  video.srcObject = stream;
-  await new Promise((resolve) => {
-    if (video.readyState >= 2) return resolve();
-    video.onloadedmetadata = () => resolve();
-  });
-  await video.play();
-}
-
-function stopPoseCamera() {
-  if (state.poseStream) {
-    // 1. 카메라 하드웨어 트랙 강제 정지
-    state.poseStream.getTracks().forEach((t) => t.stop());
-    state.poseStream = null;
-  }
-  
-  // 2. [핵심 추가] 비디오 태그에 연결된 스트림을 강제로 끊어내고 초기화
-  const video = document.querySelector("#pose-video");
-  if (video) {
-    video.srcObject = null;
-    video.load(); // 브라우저 메모리에서 카메라 리소스를 완전히 해제
-  }
-
-  if (state.poseRafId) {
-    cancelAnimationFrame(state.poseRafId);
-    state.poseRafId = null;
-  }
-}
-
-async function enterPoseScreen() {
-  const poseKo = POSE_LABEL_KO[state.selectedPose];
-  $("#pose-banner-text").textContent = `${poseKo}를 인식시켜 주세요`;
-  $("#pose-status-label").textContent = "포즈 인식 대기중";
-  $("#guide-icon").dataset.icon = state.selectedPose;
-  $("#guide-icon").classList.remove("matched");
-  setRingProgress(0);
-  state.holdStartedAt = null;
-  state.poseDone = false;
-
-  try {
-    await startPoseCamera();
-  } catch (err) {
-    console.error(err);
-    $("#pose-status-label").textContent = "카메라를 사용할 수 없어요";
-    alert(
-      "카메라 접근에 실패했어요. 브라우저의 카메라 권한을 확인한 뒤 다시 시도해주세요.\n\n" +
-        err.message
-    );
-    return;
-  }
-
-  try {
-    await getGestureRecognizer();
-    poseLoop();
-  } catch (err) {
-    console.error(err);
-    $("#pose-status-label").textContent = "포즈 인식 모델을 불러오지 못했어요";
-    alert(
-      "손 포즈 인식 모델(MediaPipe)을 불러오지 못했어요. 인터넷 연결 상태를 확인한 뒤 " +
-        "다시 시도해주세요.\n\n" +
-        err.message
-    );
-  }
-}
-
-function setRingProgress(ratio) {
-  const circumference = 327; // 2 * PI * 52, matches the SVG circle in index.html
-  const clamped = Math.max(0, Math.min(1, ratio));
-  $("#progress-ring-fg").style.strokeDashoffset = String(circumference * (1 - clamped));
-}
-
-function poseLoop() {
-  const video = $("#pose-video");
-
-  const tick = () => {
-    if (state.poseDone) return;
-    if (video.readyState >= 2 && state.gestureRecognizer) {
-      const now = performance.now();
-      const result = state.gestureRecognizer.recognizeForVideo(video, now);
-      handleGestureResult(result, now);
-    }
-    state.poseRafId = requestAnimationFrame(tick);
-  };
-  state.poseRafId = requestAnimationFrame(tick);
-}
-
-function handleGestureResult(result, now) {
-  const targetGesture = POSE_GESTURE_MAP[state.selectedPose];
-  let matched = false;
-
-  if (result.gestures && result.gestures.length > 0) {
-    const top = result.gestures[0][0]; // best category for the first detected hand
-    if (top && top.categoryName === targetGesture && top.score >= GESTURE_CONFIDENCE_THRESHOLD) {
-      matched = true;
-    }
-  }
-
-  const guideIcon = $("#guide-icon");
-
-  if (matched) {
-    guideIcon.classList.add("matched");
-    if (!state.holdStartedAt) state.holdStartedAt = now;
-    const elapsed = now - state.holdStartedAt;
-    setRingProgress(elapsed / POSE_HOLD_MS);
-    $("#pose-status-label").textContent = "포즈 유지해주세요...";
-
-    if (elapsed >= POSE_HOLD_MS) {
-      onPoseSuccess();
-    }
-  } else {
-    guideIcon.classList.remove("matched");
-    state.holdStartedAt = null;
-    setRingProgress(0);
-    $("#pose-status-label").textContent = "포즈 인식 대기중";
-  }
-}
-
-async function onPoseSuccess() {
-  state.poseDone = true;
-  $("#pose-status-label").textContent = "PERFECT!";
-
-  state.poseFrameUrl = captureVideoSnapshot($("#pose-video"));
-
-  const overlay = $("#step-transition");
-  $("#transition-bg").src = state.poseFrameUrl;
-  overlay.classList.add("visible");
-
-  await wait(400);
-  stopPoseCamera();
-
-  await wait(500);
-
-  showScreen("image");
-  await enterImageScreen(); 
-
-  overlay.classList.remove("visible");
-}
-
-function wait(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+  if (screens[name]) screens[name].classList.add("active");
 }
 
 // ---------------------------------------------------------------------------
-// STEP 2 — IMAGE RECOGNITION (8th Wall / A-Frame / XRExtras)
+// SCENE
 // ---------------------------------------------------------------------------
 function buildArSceneMarkup() {
+  const targetName = state.currentTargetName || "G-target";
+  const zoneId = targetName.charAt(0); // G, I, F, T
+  const modelUrl = `assets/egg-${zoneId}-hatch.glb`;
 
-const targetName = state.currentTargetName || "G-target";
-  
+  // animation-mixer는 인식 후에 붙인다 (미리 붙이면 안 보이는 상태에서 재생이 끝나버림)
   return `
     <a-scene
       vr-mode-ui="enabled: false"
-      xrextras-capture-config="requestMic: false" 
+      xrextras-capture-config="requestMic: manual; enableEndCard: false; fileNamePrefix: GIFT-FESTA-"
       renderer="colorManagement: true; physicallyBasedRendering: true;"
       xrweb="disableWorldTracking: true">
-      
+
+      <!-- 8th Wall 기본 사진 촬영 버튼 + 미리보기 -->
+      <xrextras-capture-button capture-mode="photo"></xrextras-capture-button>
+      <xrextras-capture-preview
+        action-button-share-text="공유하기"
+        action-button-view-text="보기"
+        finalize-text="저장 중...">
+      </xrextras-capture-preview>
+
+      <a-assets>
+        <a-asset-item id="treasure-model" src="${modelUrl}"></a-asset-item>
+      </a-assets>
+
       <a-camera position="0 1 1" raycaster="objects: .cantap" cursor="fuse: false; rayOrigin: mouse;"></a-camera>
-      
-      <!-- 딱 하나의 타겟만 집중해서 추적 -->
-      <xrextras-named-image-target name="${targetName}"></xrextras-named-image-target>
+
+      <xrextras-named-image-target name="${targetName}">
+        <a-entity
+          id="treasure-entity"
+          gltf-model="#treasure-model"
+          scale="1 1 1"
+          position="0 0 0"
+          visible="false">
+        </a-entity>
+      </xrextras-named-image-target>
     </a-scene>
   `;
 }
 
-async function enterImageScreen() {
+// ---------------------------------------------------------------------------
+// UI 상태
+// ---------------------------------------------------------------------------
+function setScanningUi() {
   const zoneId = state.currentTargetName ? state.currentTargetName.charAt(0) : "";
+  const banner = $("#image-banner-text");
+  if (banner) {
+    banner.innerHTML = `<span style="color:#ff8c24; font-weight:900;">[${zoneId} ZONE]</span> 배너를 비춰주세요`;
+  }
+  const label = $("#image-status-label");
+  if (label) label.textContent = "이미지 스캔 중...";
+  const timer = $("#timer-ui");
+  if (timer) timer.style.display = "block";
 
-  $("#image-banner-text").innerHTML = `<span style="color:#ff8c24; font-weight:900;">[${zoneId} ZONE]</span> 배너를 비춰주세요`;  
-  $("#image-status-label").textContent = "이미지 스캔 중...";
-  $("#image-timer-bar").style.width = "100%";
+  setArButton("hidden");
+  document.body.classList.remove("ar-target-found"); // 8th Wall 촬영 버튼 숨김
+}
+
+// mode: "hidden" | "waiting" | "quiz"
+function setArButton(mode) {
+  const wrap = document.querySelector("#ar-quest-container .ar-actions");
+  const btn = $("#btn-ar-action");
+  if (!wrap || !btn) return;
+
+  wrap.classList.toggle("is-hidden", mode === "hidden");
+  btn.onclick = null;
+  btn.className = "btn btn-gift";
+
+  if (mode === "waiting") {
+    btn.textContent = "스탬프가 나타나는 중...";
+    btn.disabled = true;
+  } else if (mode === "quiz") {
+    btn.textContent = "퀴즈 풀러 가기";
+    btn.disabled = false;
+    btn.onclick = () => goToQuiz();
+  } else {
+    btn.disabled = true;
+  }
+}
+
+function goToQuiz(targetName = state.currentTargetName) {
+  const btn = $("#btn-ar-action");
+  if (btn) btn.disabled = true; // 연타 방지
+  teardownArScene();
+  if (typeof window.onQuestSuccess === "function") window.onQuestSuccess(targetName);
+}
+
+// ---------------------------------------------------------------------------
+// 애니메이션
+// ---------------------------------------------------------------------------
+function findClip(entity, wanted) {
+  const clips = entity.getObject3D("mesh")?.animations || [];
+  return (
+    clips.find((c) => c.name === wanted) ||
+    clips.find((c) => c.name.toLowerCase() === wanted.toLowerCase()) ||
+    null
+  );
+}
+
+function resolveClipName(entity, wanted) {
+  const clip = findClip(entity, wanted);
+  if (!clip && entity.getObject3D("mesh")) {
+    const names = (entity.getObject3D("mesh").animations || []).map((c) => c.name);
+    console.warn(`[AR] '${wanted}' 클립을 찾지 못했어요. 모델에 있는 클립:`, names);
+  }
+  return clip ? clip.name : wanted;
+}
+
+function playIntroThenLoop(entity) {
+  let done = false;
+
+  const startLoop = () => {
+    if (done || !state.imageFound) return;
+    done = true;
+    clearTimeout(state.animFallbackTimer);
+    entity.removeEventListener("animation-finished", onFinished);
+    state.animFinishedHandler = null;
+
+    entity.setAttribute("animation-mixer", {
+      clip: resolveClipName(entity, LOOP_CLIP),
+      loop: "repeat",
+      clampWhenFinished: false,
+    });
+    setArButton("quiz");
+  };
+
+  // 인트로 단계에서 오는 finished 이벤트는 곧 인트로 종료
+  const onFinished = () => startLoop();
+  state.animFinishedHandler = onFinished;
+  entity.addEventListener("animation-finished", onFinished);
+
+  entity.setAttribute("visible", "true");
+  entity.setAttribute("animation-mixer", {
+    clip: resolveClipName(entity, INTRO_CLIP),
+    loop: "once",
+    clampWhenFinished: true,
+  });
+
+  // 이벤트가 안 오는 경우 대비: 클립 길이 + 0.5초 뒤 강제로 루프 전환
+  const introClip = findClip(entity, INTRO_CLIP);
+  const fallbackMs = introClip ? introClip.duration * 1000 + 500 : INTRO_FALLBACK_MS;
+  state.animFallbackTimer = setTimeout(startLoop, fallbackMs);
+}
+
+function stopModel() {
+  clearTimeout(state.animFallbackTimer);
+  const entity = $("#treasure-entity");
+  if (entity) {
+    if (state.animFinishedHandler) {
+      entity.removeEventListener("animation-finished", state.animFinishedHandler);
+    }
+    entity.removeAttribute("animation-mixer"); // 다음 인식 때 처음부터 다시 재생되도록
+    entity.setAttribute("visible", "false");
+  }
+  state.animFinishedHandler = null;
+}
+
+// ---------------------------------------------------------------------------
+// 이미지 인식
+// ---------------------------------------------------------------------------
+async function enterImageScreen() {
   state.imageFound = false;
-  state.imageStartedAt = performance.now();
+  setScanningUi();
 
-  // =================================================================
-  // [핵심 해결 1] AR 씬을 그리기 전에 타겟 데이터(JSON)를 먼저 다운로드합니다.
-  // =================================================================
   let targetData = null;
   try {
     const res = await fetch("./target.json");
@@ -288,7 +205,6 @@ async function enterImageScreen() {
     $("#image-status-label").textContent = "이미지 타겟 데이터를 불러오지 못했어요.";
   }
 
-  // 데이터가 장전되면 XR8 엔진에 주입하는 함수
   const applyConfig = () => {
     if (targetData && window.XR8 && window.XR8.XrController) {
       window.XR8.XrController.configure({ imageTargetData: targetData });
@@ -296,39 +212,32 @@ async function enterImageScreen() {
     }
   };
 
-  // XR8 라이브러리가 로드되어 있으면 즉시 주입, 아니면 로드될 때 주입
   if (window.XR8) {
     applyConfig();
   } else {
     window.addEventListener("xrloaded", applyConfig, { once: true });
   }
 
-  // =================================================================
-  // [핵심 해결 2] 데이터 세팅이 완료된 후, 비로소 카메라(A-Frame)를 화면에 띄웁니다.
-  // =================================================================
   const mount = $("#ar-mount");
   mount.innerHTML = buildArSceneMarkup();
   const sceneEl = mount.querySelector("a-scene");
   state.currentSceneEl = sceneEl;
 
-  const VALID_TARGETS = [state.currentTargetName];
-  
-  // (이전에 적용했던 유령 캐시 방어 로직 유지)
   let isReadyToScan = false;
-  setTimeout(() => { isReadyToScan = true; }, 1500); 
-
-  const ALL_TARGETS = ["G-target", "I-target", "F-target", "T-target"];
+  setTimeout(() => { isReadyToScan = true; }, 1500);
 
   const onFound = (e) => {
-    if (isReadyToScan && e.detail && ALL_TARGETS.includes(e.detail.name)) {
-      onImageFound(e.detail.name); // 실제 인식된 배너 이름(예: I-target)을 넘김
-    }
+    const name = e.detail && e.detail.name;
+    if (!isReadyToScan || !ALL_TARGETS.includes(name)) return;
+    if (name === state.currentTargetName) clearTimeout(state.lostTimer); // 유예 시간 안에 다시 찾음
+    onImageFound(name);
   };
 
   const onLost = (e) => {
-    if (e.detail && VALID_TARGETS.includes(e.detail.name) && !state.imageFound) {
-      $("#image-status-label").textContent = "이미지 스캔 중...";
-    }
+    const name = e.detail && e.detail.name;
+    if (name !== state.currentTargetName || !state.imageFound) return;
+    clearTimeout(state.lostTimer);
+    state.lostTimer = setTimeout(resetToScanning, LOST_GRACE_MS);
   };
 
   sceneEl.addEventListener("xrimagefound", onFound);
@@ -353,6 +262,8 @@ function waitForArReady(sceneEl, timeoutMs = 2200) {
 
 function startImageTimeout() {
   clearImageTimers();
+  state.imageStartedAt = performance.now();
+  $("#image-timer-bar").style.width = "100%";
 
   const tick = () => {
     if (state.imageFound) return;
@@ -373,341 +284,97 @@ function clearImageTimers() {
     cancelAnimationFrame(state.imageTimerRafId);
     state.imageTimerRafId = null;
   }
-  if (state.imageTimeoutHandle) {
-    clearTimeout(state.imageTimeoutHandle);
-    state.imageTimeoutHandle = null;
-  }
 }
 
 function onImageFound(targetName) {
   if (state.imageFound) return;
   state.imageFound = true;
   clearImageTimers();
-  $("#image-status-label").textContent = "인식 성공!";
-  $("#image-banner-text").textContent = "엑스배너를 찾았어요!";
 
-  setTimeout(async () => {
-    state.imageFrameUrl = await captureArSnapshot();
-    teardownArScene();
-    // finishGame으로 타겟 이름 전달
-    finishGame(true, targetName); 
-  }, 400);
+  // 다른 Zone 배너 → 애니메이션 없이 바로 app.js로 넘겨 '인증 실패' 모달 처리
+  if (targetName !== state.currentTargetName) {
+    goToQuiz(targetName);
+    return;
+  }
+
+  $("#timer-ui").style.display = "none";
+  $("#image-banner-text").textContent = "이미지 인식 완료!";
+  document.body.classList.add("ar-target-found"); // 8th Wall 촬영 버튼 표시
+  setArButton("waiting");
+
+  const entity = $("#treasure-entity");
+  if (!entity) {
+    setArButton("quiz");
+    return;
+  }
+  playIntroThenLoop(entity);
+}
+
+// 배너를 놓치면 인식 전 초기 상태로 되돌림
+function resetToScanning() {
+  if (!state.currentSceneEl) return;
+  state.imageFound = false;
+  stopModel();
+  setScanningUi();
+  startImageTimeout();
 }
 
 async function onImageTimeout() {
-  state.imageFrameUrl = await captureArSnapshot();
   teardownArScene();
-  finishGame(false);
-}
-
-async function captureArSnapshot() {
-  try {
-    if (!window.XR8 || !XR8.CanvasScreenshot) return null;
-    const base64Jpeg = await XR8.CanvasScreenshot.takeScreenshot();
-    if (!base64Jpeg) return null;
-    return "data:image/jpeg;base64," + base64Jpeg;
-  } catch (err) {
-    console.warn("Could not capture AR snapshot", err);
-    return null;
-  }
+  alert("이미지 스캔 시간이 초과되었습니다. 다시 시도해주세요.");
+  window.history.back();
 }
 
 function teardownArScene() {
   clearImageTimers();
+  clearTimeout(state.lostTimer);
+  stopModel();
+  document.body.classList.remove("ar-target-found");
+
+  const sceneEl = state.currentSceneEl;
+
   try {
-    if (window.XR8 && typeof window.XR8.stop === "function") window.XR8.stop();
+    if (window.XR8) {
+      if (typeof window.XR8.stop === "function") window.XR8.stop();
+      // 이전 씬이 등록한 카메라 파이프라인 모듈 제거 → 재진입 시 새 캔버스에 다시 연결됨
+      if (typeof window.XR8.clearCameraPipelineModules === "function") {
+        window.XR8.clearCameraPipelineModules();
+      }
+    }
   } catch (err) {
-    console.warn("XR8.stop() failed", err);
+    console.warn("XR8 정리 실패", err);
   }
+
+  // WebGL 렌더러 정리 (반복 진입 시 iOS 그래픽 자원 누적 방지)
+  try {
+    if (sceneEl && sceneEl.renderer) sceneEl.renderer.dispose();
+  } catch (err) {
+    console.warn("renderer dispose 실패", err);
+  }
+
   state.currentSceneEl = null;
 
   const arMount = $("#ar-mount");
-  if (arMount) {
-    arMount.innerHTML = "";
-  }
+  if (arMount) arMount.innerHTML = "";
 }
 
-// ---------------------------------------------------------------------------
-// RESULT SCREEN (수정됨: 성공 시 메인 앱으로 콜백, 실패 시 결과화면 표시)
-// ---------------------------------------------------------------------------
-// RESULT SCREEN (수정됨: 성공 시 결과화면 표시 후 퀴즈풀기 버튼으로 진행)
-async function finishGame(success, targetName) {
-  showScreen("result");
-
-  const icon = $("#result-icon");
-  icon.classList.remove("success", "fail", "pop-in");
-  void icon.offsetWidth; // restart animation
-  
-  // 1. 성공/실패에 따른 텍스트 및 아이콘 분기 처리
-  if (success) {
-    icon.classList.add("success", "pop-in");
-    icon.textContent = "✓"; // 성공 아이콘
-    $("#result-title").textContent = "인증 성공!";
-    $("#result-sub").textContent = "결과 사진을 확인하고 퀴즈를 풀어보세요.";
-  } else {
-    icon.classList.add("fail", "pop-in");
-    icon.textContent = "✕"; // 실패 아이콘
-    $("#result-title").textContent = "인증 실패";
-    $("#result-sub").textContent = "엑스배너 이미지를 다시 인식시켜 도전해보세요.";
-  }
-
-  const photoImg = $("#result-photo");
-  const downloadBtn = $("#btn-download");
-  const retryBtn = $("#btn-retry");
-  
-  // HTML에 있는 '퀴즈풀기' 버튼의 ID를 찾아서 맞춰주세요 (여기서는 #btn-quiz 로 가정)
-  const quizBtn = $("#btn-quiz"); 
-
-  // 촬영된 데이터가 하나도 없으면 이미지/버튼 숨김
-  if (!state.poseFrameUrl && !state.imageFrameUrl) {
-    photoImg.style.visibility = "hidden";
-    downloadBtn.style.display = "none";
-    if (quizBtn) quizBtn.style.display = "none";
-    return;
-  }
-
-  // 사진 합성 대기 중 UI 처리
-  downloadBtn.disabled = true;
-  downloadBtn.textContent = "사진 준비 중...";
-
-  // 성공 여부(success)를 전달하여 사진 합성 진행 (SUCCESS / FAILED 자동 출력됨)
-  const blob = await composeResultPhoto(success);
-  state.resultPhotoBlob = blob;
-
-  if (blob) {
-    photoImg.src = URL.createObjectURL(blob);
-    photoImg.style.visibility = "visible";
-    downloadBtn.style.display = "inline-flex";
-    downloadBtn.disabled = false;
-    downloadBtn.textContent = "사진 저장하기";
-
-    // 성공했을 때와 실패했을 때 보여줄 버튼 분기
-    if (success) {
-      if (retryBtn) retryBtn.style.display = "none"; // 성공 시 다시하기 버튼 숨김
-      if (quizBtn) {
-        quizBtn.style.display = "inline-flex"; // 퀴즈 버튼 노출
-        // 퀴즈 버튼을 눌렀을 때 비로소 메인 앱으로 콜백 전달
-        quizBtn.onclick = () => {
-          if (typeof window.onQuestSuccess === "function") {
-            window.onQuestSuccess(targetName);
-          }
-        };
-      }
-    } else {
-      if (quizBtn) quizBtn.style.display = "none"; // 실패 시 퀴즈 버튼 숨김
-      if (retryBtn) retryBtn.style.display = "inline-flex"; // 실패 시 다시하기 버튼 노출
-    }
-
-  } else {
-    photoImg.style.visibility = "hidden";
-    downloadBtn.style.display = "none";
-    if (quizBtn) quizBtn.style.display = "none";
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Snapshot helpers
-// ---------------------------------------------------------------------------
-function captureVideoSnapshot(videoEl) {
-  const canvas = document.createElement("canvas");
-  canvas.width = videoEl.videoWidth || 720;
-  canvas.height = videoEl.videoHeight || 960;
-  const ctx = canvas.getContext("2d");
-  ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
-  return canvas.toDataURL("image/png");
-}
-
-function composeResultPhoto(success) {
-  const canvas = $("#compose-canvas");
-  const panelW = 540;
-  const panelH = 720;
-  const captionH = 70;
-  canvas.width = panelW * 2;
-  canvas.height = panelH + captionH;
-  const ctx = canvas.getContext("2d");
-
-  ctx.fillStyle = "#100f16";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  const drawPanel = (src, x) =>
-    new Promise((resolve) => {
-      if (!src) return resolve();
-      const img = new Image();
-      img.onload = () => {
-        // cover-fit into the panel so both frames fill it edge-to-edge
-        // with no letterboxing, matching a real seamless photo strip.
-        const scale = Math.max(panelW / img.width, panelH / img.height);
-        const drawW = img.width * scale;
-        const drawH = img.height * scale;
-        ctx.drawImage(img, x + (panelW - drawW) / 2, (panelH - drawH) / 2, drawW, drawH);
-        resolve();
-      };
-      img.onerror = resolve;
-      img.src = src;
-    });
-
-  return Promise.all([
-    drawPanel(state.poseFrameUrl, 0),
-    drawPanel(state.imageFrameUrl, panelW),
-  ]).then(() => {
-    // thin seam so the join between the two frames still reads intentionally
-    ctx.fillStyle = "rgba(255,255,255,0.5)";
-    ctx.fillRect(panelW - 1, 0, 2, panelH);
-
-    ctx.fillStyle = success ? "#22c55e" : "#ef4444";
-    ctx.font = "700 34px sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(
-      success ? "이미지 찾기 · SUCCESS" : "이미지 찾기 · FAILED",
-      canvas.width / 2,
-      panelH + captionH / 2
-    );
-
-    return new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
-  });
-}
-
-// ---------------------------------------------------------------------------
-// Reset
-// ---------------------------------------------------------------------------
-function resetGameState() {
-  stopPoseCamera();
-  teardownArScene();
-  $("#step-transition").classList.remove("visible");
-  state.holdStartedAt = null;
-  state.poseDone = false;
-  state.poseFrameUrl = null;
-  state.imageFrameUrl = null;
-  state.resultPhotoBlob = null;
-  state.imageFound = false;
-  setRingProgress(0);
-}
-
-function resetPoseSelection() {
-  state.selectedPose = "thumbs_up";
-  const tabs = document.querySelectorAll("#pose-tabs .tab");
-  if (tabs.length > 0) {
-    tabs.forEach((tab) => {
-      if (tab.dataset.pose === "thumbs_up") {
-        tab.classList.add("active");
-      } else {
-        tab.classList.remove("active");
-      }
-    });
-  }
-}
-// AR 화면의 HTML이 DOM에 그려진 직후에 버튼들을 찾고 이벤트를 연결하는 함수
 function bindArEvents() {
-  // 1. 화면 요소들 매핑
   screens = {
-    intro: $("#screen-intro"),
-    pose: $("#screen-pose"),
     image: $("#screen-image"),
-    result: $("#screen-result"),
   };
-
-  // 2. 포즈 탭 이벤트
-  document.querySelectorAll("#pose-tabs .tab").forEach((tab) => {
-    tab.onclick = () => {
-      document.querySelectorAll("#pose-tabs .tab").forEach((t) => t.classList.remove("active"));
-      tab.classList.add("active");
-      state.selectedPose = tab.dataset.pose;
-    };
-  });
-
-  // 3. 시작 버튼
-  const btnStart = $("#btn-start");
-  if (btnStart) {
-    btnStart.onclick = () => {
-      resetGameState();
-      showScreen("pose");
-      enterPoseScreen();
-    };
-  }
-
-  // 4. 카메라 전환 버튼
-  const btnFlip = $("#btn-flip-camera");
-  if (btnFlip) {
-    btnFlip.onclick = async () => {
-      state.facingMode = state.facingMode === "environment" ? "user" : "environment";
-      try {
-        await startPoseCamera();
-      } catch (err) {
-        console.error(err);
-      }
-    };
-  }
-
-  // 5. 그만하기 버튼
-  const btnGiveUp = $("#btn-give-up");
-  if (btnGiveUp) {
-    btnGiveUp.onclick = async () => {
-      clearImageTimers();
-      state.imageFrameUrl = await captureArSnapshot();
-      teardownArScene();
-      finishGame(false);
-    };
-  }
-
-  // 6. 다시 도전하기 버튼
-  const btnRetry = $("#btn-retry");
-  if (btnRetry) {
-    btnRetry.onclick = () => {
-      resetGameState();
-      resetPoseSelection();
-      showScreen("intro");
-    };
-  }
-
-  // 7. 사진 다운로드 버튼
-  const btnDownload = $("#btn-download");
-  if (btnDownload) {
-    btnDownload.onclick = async () => {
-      const blob = state.resultPhotoBlob;
-      if (!blob) return;
-      const fileName = "quest-result.png";
-      const file = new File([blob], fileName, { type: "image/png" });
-      
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        try {
-          await navigator.share({ files: [file], title: "손가락 포즈 인증 퀘스트" });
-          return;
-        } catch (err) {
-          if (err && err.name === "AbortError") return;
-          console.warn("navigator.share failed, falling back to download link", err);
-        }
-      }
-      
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      setTimeout(() => URL.revokeObjectURL(url), 10000);
-    };
-  }
 }
 
-window.startTigerQuest = function(expectedTarget, onSuccessCallback, zoneId) {
+window.startTigerQuest = function (expectedTarget, onSuccessCallback, zoneId) {
   state.currentTargetName = expectedTarget;
   window.onQuestSuccess = onSuccessCallback;
 
-  const introTitle = document.querySelector("#screen-intro h1");
-  if (introTitle && zoneId) {
-      introTitle.innerHTML = `<span style="color:#e5007f;">[${zoneId} ZONE]</span><br/>엑스배너 이미지를 찾아라!`;
-  }
-
   bindArEvents();
-  resetGameState();
-  resetPoseSelection();
-  showScreen("intro");
-}
+  teardownArScene();
 
-// 메인 앱에서 뒤로가기를 누르거나 화면을 벗어날 때 호출할 함수 (카메라 완벽 해제)
-window.stopTigerQuest = function() {
-  stopPoseCamera();  // 미디어파이프(전면 카메라) 해제
-  teardownArScene(); // 8th Wall(AR 카메라) 해제
+  showScreen("image");
+  enterImageScreen();
+};
+
+window.stopTigerQuest = function () {
+  teardownArScene();
 };

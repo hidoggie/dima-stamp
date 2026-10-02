@@ -35,6 +35,7 @@
       name: "Intensive Practice",
       meaning: "깊이 있는 숙련",
       color: "#890C84",
+      textColor: "#E05BDA",
       stamp: "assets/stamps/i.png",
       question:
         "몰입과 반복을 통해 전문성을 깊게 만드는 DIMA의 정신, I는 무엇일까요?",
@@ -60,6 +61,7 @@
       name: "Fearless of failure",
       meaning: "실패를 두려워하지 않음",
       color: "#381F87",
+      textColor: "#A58CF5",
       stamp: "assets/stamps/f.png",
       stampBook: "assets/stamps/f-light.png",
       question:
@@ -465,7 +467,7 @@ function stampRow(id) {
   function miniCard(id) {
     const zone = ZONES[id];
     return `<article class="glass-card mini-card" style="${zoneStyle(zone)}">
-      <img src="${zone.stamp}" alt="${id} 스탬프" />
+      <img src="${zone.stampBook || zone.stamp}" alt="${id} 스탬프" />
       <div><strong>${id} · ${zone.name}</strong><span>${zone.meaning}</span></div>
     </article>`;
   }
@@ -640,6 +642,7 @@ function stampRow(id) {
       <div class="miracle" style="margin-top: 50px; margin-bottom: 50px; font-size: 32px;">Miracle DIMA</div>
       
       <div class="button-stack">
+        ${state.certCanvas ? `<button class="btn" type="button" data-action="cert-again">확인증 다시 저장하기</button>` : ""}
         <button class="btn btn-primary" type="button" data-action="home">처음 화면으로</button>
       </div>
     </section>`;
@@ -684,11 +687,10 @@ function stampRow(id) {
       app.scrollTop = 0;
 
       // 2. 화면 렌더링이 끝나고, 현재 화면이 AR이라면 퀘스트를 시작합니다.
+      const expectedTargetName = ZONES[state.zone].targetName;
+
       if (state.screen === "ar" && window.startTigerQuest) {
         const expectedTargetName = ZONES[state.zone].targetName;
-
-  if (state.screen === "ar" && window.startTigerQuest) {
-    const expectedTargetName = ZONES[state.zone].targetName;
 
     // 세 번째 인자로 state.zone을 반드시 유지해야 합니다!
     window.startTigerQuest(expectedTargetName, (recognizedTarget) => {
@@ -724,7 +726,6 @@ function stampRow(id) {
         }        
     }, state.zone); 
   }
-      }
     });
   }
 
@@ -785,11 +786,11 @@ function stampRow(id) {
     showModal(
       `<div class="result-icon inline-icon">${icon("check")}</div>
       <h2 id="result-title">정답입니다!</h2>
-      <h3 style="color:${zone.color}">${escapeHtml(zone.correctTitle)}</h3>
+      <h3 style="color:${zone.textColor || zone.color}">${escapeHtml(zone.correctTitle)}</h3>
       <p><strong style="color:#fff">${escapeHtml(zone.meaning)}</strong><br />${escapeHtml(zone.correctBody)}</p>
       <div class="modal-divider"></div>
-      <img class="modal-stamp" src="${zone.stamp}" alt="${zone.id} 스탬프 획득" />
-      <h3 style="color:${zone.color}">${escapeHtml(zone.stampTitle)}</h3>
+      <img class="modal-stamp" src="${zone.stampBook || zone.stamp}" alt="${zone.id} 스탬프 획득" />
+      <h3 style="color:${zone.textColor || zone.color}">${escapeHtml(zone.stampTitle)}</h3>
       <p>${escapeHtml(zone.stampBody)}</p>
       <div class="button-stack"><button class="btn btn-zone" type="button" data-action="after-stamp" style="${zoneStyle(zone)}">다음으로</button></div>`,
       "result-title",
@@ -845,14 +846,137 @@ function stampRow(id) {
       <div class="final-brand"><em>Miracle DIMA,</em><strong>${giftLetters()} Festa 2026</strong></div>
       
       <!-- 3. 확인 버튼 위 안내 문구 추가 -->
-      <p class="note" style="margin-top:20px; text-align:center; word-break:keep-all;">※ 만일의 경우를 대비하여 확인 버튼 클릭 시 완료 보관증이 기기에 자동 다운로드됩니다.</p>
-      
+        <p class="note" style="margin-top:20px; text-align:center; word-break:keep-all;">※ 확인 버튼을 누르면 완료 확인증을 저장할 수 있어요. (iPhone은 공유 창에서 '이미지 저장' 선택)</p>      
       <!-- 2. 단일 버튼으로 통합 -->
       <div class="button-stack">
         <button class="btn btn-gift" type="button" data-action="confirm-final">확인</button>
       </div>`,
       "final-title",
       "#B044FF",
+    );
+    prepareCertificate();
+  }
+
+    const CERT_FILE_NAME = "GIFT_완료확인증.png";
+
+  function isIOS() {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  }
+
+  function drawCertificate() {
+    const canvas = document.createElement("canvas");
+    canvas.width = 600;
+    canvas.height = 480;
+    const ctx = canvas.getContext("2d");
+
+    ctx.fillStyle = "#100f16";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const rx = 30, ry = 30, rw = 540, rh = 420, radius = 15;
+    ctx.beginPath();
+    ctx.moveTo(rx + radius, ry);
+    ctx.lineTo(rx + rw - radius, ry);
+    ctx.quadraticCurveTo(rx + rw, ry, rx + rw, ry + radius);
+    ctx.lineTo(rx + rw, ry + rh - radius);
+    ctx.quadraticCurveTo(rx + rw, ry + rh, rx + rw - radius, ry + rh);
+    ctx.lineTo(rx + radius, ry + rh);
+    ctx.quadraticCurveTo(rx, ry + rh, rx, ry + rh - radius);
+    ctx.lineTo(rx, ry + radius);
+    ctx.quadraticCurveTo(rx, ry, rx + radius, ry);
+    ctx.closePath();
+    ctx.fillStyle = "#1c1b29";
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "#B044FF";
+    ctx.stroke();
+
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 32px sans-serif";
+    ctx.fillText("GIFT Festa 2026 확인증", canvas.width / 2, 95);
+
+    ctx.beginPath();
+    ctx.moveTo(70, 130);
+    ctx.lineTo(530, 130);
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = "#444444";
+    ctx.stroke();
+
+    ctx.textAlign = "left";
+    ctx.font = "22px sans-serif";
+    ctx.fillStyle = "#eeeeee";
+    const startX = 80;
+    let startY = 190;
+    const lineH = 50;
+    ctx.fillText(`▪ 이름: ${state.participant.name}`, startX, startY); startY += lineH;
+    ctx.fillText(`▪ 학번: ${state.participant.studentId}`, startX, startY); startY += lineH;
+    ctx.fillText(`▪ 인증코드: ${(state.idempotencyKey || "").split("-")[0]}`, startX, startY); startY += lineH;
+
+    ctx.font = "20px sans-serif";
+    ctx.fillStyle = "#aaaaaa";
+    ctx.fillText(`▪ 저장일시: ${new Date().toLocaleString()}`, startX, startY + 30);
+
+    return canvas;
+  }
+
+  // 팝업이 뜰 때 미리 생성 → 버튼 탭 직후 바로 share() 호출 가능
+  function prepareCertificate() {
+    state.certCanvas = drawCertificate();
+    state.certFile = null;
+    state.certCanvas.toBlob((blob) => {
+      if (blob) state.certFile = new File([blob], CERT_FILE_NAME, { type: "image/png" });
+    }, "image/png");
+  }
+
+  function finishToDone() {
+    closeModal(false);
+    navigate(state.screen === "done" ? "start" : "done", true);
+  }
+
+  function saveCertificate() {
+    if (!state.certCanvas) prepareCertificate();
+    const file = state.certFile;
+
+    // iPhone: 공유 창 → '이미지 저장' (실패·취소 시 길게 눌러 저장 안내)
+    if (isIOS()) {
+      if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+        navigator
+          .share({ files: [file], title: "GIFT Festa 2026 확인증" })
+          .then(finishToDone)
+          .catch(() => showCertificateFallback());
+      } else {
+        showCertificateFallback();
+      }
+      return;
+    }
+
+    // 안드로이드 / PC: 파일 다운로드 후, 실패 대비 안내 화면 표시
+    const link = document.createElement("a");
+    link.download = CERT_FILE_NAME;
+    link.href = state.certCanvas.toDataURL("image/png");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    finishToDone(); 
+  }
+
+  function showCertificateFallback(downloaded = false) {
+    if (!state.certCanvas) prepareCertificate();
+    const message = downloaded
+      ? `확인증을 다운로드했어요. <span style="white-space:nowrap">(내 파일 › 다운로드)</span><br />저장이 안 됐다면 아래 이미지를 <strong style="color:#fff">길게 눌러</strong> 저장해 주세요.`
+      : `아래 이미지를 <strong style="color:#fff">길게 눌러</strong><br />'사진 앱에 저장'을 선택해 주세요.`;
+
+    showModal(
+      `<h2 id="cert-title">확인증 저장</h2>
+      <p>${message}</p>
+      <img class="cert-preview" src="${state.certCanvas.toDataURL("image/png")}" alt="GIFT Festa 2026 확인증" />
+      <div class="button-stack">
+        <button class="btn btn-gift" type="button" data-action="cert-done">저장했어요</button>
+      </div>`,
+      "cert-title",
+      "#B044FF",
+      state.screen === "done",
     );
   }
 
@@ -1065,6 +1189,7 @@ function handleParticipant(form) {
     if (action === "complete") navigate("complete");
     if (action === "survey") navigate("survey1");
     if (action === "guide") showGuide(control.dataset.guide);
+    if (action === "cert-again") showCertificateFallback();
   });
 
 
@@ -1220,97 +1345,9 @@ async function submitFinalData() {
       navigate(state.stamps.length === 4 ? "stampbook" : "start");
     }
 
-    if (action === "confirm-final") {
-      const canvas = document.createElement("canvas");
-      canvas.width = 600; 
-      canvas.height = 480;
-      const ctx = canvas.getContext("2d");
+    if (action === "confirm-final") saveCertificate();
+    if (action === "cert-done") finishToDone();
 
-      // 1~5. 배경 및 텍스트 렌더링 (이전 코드와 동일)
-      ctx.fillStyle = "#100f16"; 
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      const rx = 30, ry = 30, rw = 540, rh = 420, radius = 15;
-      ctx.beginPath();
-      ctx.moveTo(rx + radius, ry);
-      ctx.lineTo(rx + rw - radius, ry);
-      ctx.quadraticCurveTo(rx + rw, ry, rx + rw, ry + radius);
-      ctx.lineTo(rx + rw, ry + rh - radius);
-      ctx.quadraticCurveTo(rx + rw, ry + rh, rx + rw - radius, ry + rh);
-      ctx.lineTo(rx + radius, ry + rh);
-      ctx.quadraticCurveTo(rx, ry + rh, rx, ry + rh - radius);
-      ctx.lineTo(rx, ry + radius);
-      ctx.quadraticCurveTo(rx, ry, rx + radius, ry);
-      ctx.closePath();
-      
-      ctx.fillStyle = "#1c1b29"; 
-      ctx.fill();
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = "#B044FF"; 
-      ctx.stroke();
-
-      ctx.textAlign = "center";
-      ctx.fillStyle = "#ffffff"; 
-      ctx.font = "bold 32px sans-serif";
-      ctx.fillText("GIFT Festa 2026 확인증", canvas.width / 2, 95);
-
-      ctx.beginPath();
-      ctx.moveTo(70, 130);
-      ctx.lineTo(530, 130);
-      ctx.lineWidth = 1;
-      ctx.strokeStyle = "#444444";
-      ctx.stroke();
-
-      ctx.textAlign = "left";
-      ctx.font = "22px sans-serif";
-      ctx.fillStyle = "#eeeeee";
-      
-      const startX = 80;
-      let startY = 190;
-      const lineH = 50;
-
-      ctx.fillText(`▪ 이름: ${state.participant.name}`, startX, startY); startY += lineH;
-      ctx.fillText(`▪ 학번: ${state.participant.studentId}`, startX, startY); startY += lineH;
-      ctx.fillText(`▪ 인증코드: ${(state.idempotencyKey || "").split('-')[0]}`, startX, startY); startY += lineH;
-      
-      ctx.font = "20px sans-serif";
-      ctx.fillStyle = "#aaaaaa";
-      ctx.fillText(`▪ 저장일시: ${new Date().toLocaleString()}`, startX, startY + 30);
-
-      // ★ 아이폰(iOS) 완벽 대응을 위한 비동기 다운로드 및 Web Share API 적용
-      canvas.toBlob(async (blob) => {
-        if (!blob) return;
-        const fileName = "GIFT_완료확인증.png";
-        const file = new File([blob], fileName, { type: "image/png" });
-
-        // iOS 사파리 등 Web Share API 지원 기기 (네이티브 공유 창 호출)
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          try {
-            await navigator.share({
-              files: [file],
-              title: "GIFT Festa 2026 확인증"
-            });
-          } catch (err) {
-            // 사용자가 공유 창을 취소하고 닫은 경우 무시하고 다음으로 넘어감
-            console.warn("Share API 취소 또는 에러", err);
-          }
-        } else {
-          // 안드로이드 및 PC 웹 브라우저 폴백 (기존 <a> 태그 다운로드 방식)
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement("a");
-          link.download = fileName;
-          link.href = url;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          setTimeout(() => URL.revokeObjectURL(url), 10000);
-        }
-
-        // 다운로드/공유 창 액션이 끝나면 무조건 최종 참여 완료 화면으로 이동
-        closeModal(false);
-        navigate("done", true);
-      }, "image/png");
-    }
 
     if (action === "reset") {
       showToast("스탬프 디자인 상태를 초기화했습니다.");
@@ -1338,126 +1375,38 @@ async function submitFinalData() {
     }
   });
 
-  let arActive = false; // 카메라 활성화 상태 추적
-
-  // [화면 UI] AR 전용 화면 그리기
   function renderAr() {
-    // index-ar.html 의 body 안에 있던 UI 코드를 그대로 가져옵니다.
     return `
-      <div id="ar-quest-container" style="width:100%; height:100vh; position:fixed; top:0; left:0; z-index:9999; background:#000;">
-        
-        <!-- 뒤로가기 강제 버튼 (안전장치) -->
+      <div id="ar-quest-container" style="position:fixed; inset:0; width:100%; z-index:9999; background:#000;">        
+        <!-- 뒤로가기 버튼 -->
         <button type="button" data-action="back" style="position:absolute; top:15px; left:15px; z-index:10000; background:transparent; border:none; padding:0; width:44px; height:44px; cursor:pointer;">
           <img src="assets/back-btn-white.png" alt="뒤로 가기" style="width:100%; height:100%; object-fit:contain;" />
         </button>
 
-        <!-- ============================== SCREEN 1 : INTRO ============================== -->
- <section id="screen-intro" class="ar-screen active">
-  <div class="card">
-    <!--div class="badge">QUEST</div-->
-    <h1>엑스배너 이미지를 찾아라!</h1>
-    <p class="sub">1단계 포즈 인증을 통과하면, 2단계에서 카메라로 엑스배너 이미지를 인식시켜 퀘스트를 완료할 수 있어요.</p>
+        <!-- SCREEN 1 : IMAGE RECOGNITION -->
+        <section id="screen-image" class="ar-screen active" style="width:100%; height:100%; position:relative; overflow:hidden;">
+          <div id="ar-mount" style="width:100%; height:100%;"></div>
 
-    <div class="tabs" id="pose-tabs">
-      <button class="tab active" data-pose="thumbs_up">
-        <span class="tab-icon" data-icon="thumbs_up"></span>
-        엄지척 포즈
-      </button>
-      <button class="tab" data-pose="victory">
-        <span class="tab-icon" data-icon="victory"></span>
-        V 포즈
-      </button>
-    </div>
+          <!-- 상단 배너 -->
+          <div class="ar-hud ar-hud-top">
+            <div class="hud-banner">
+              <span class="badge-inline">AR 미션</span>
+              <span id="image-banner-text">엑스배너 이미지를 화면 안에 비춰주세요</span>
+            </div>
+          </div>
 
-    <ol class="steps">
-      <li><b>STEP 1</b> 선택한 손 포즈를 카메라에 맞춰 인증하기</li>
-      <li><b>STEP 2</b> 카메라로 엑스배너 이미지를 인식시키기</li>
-    </ol>
+          <!-- 하단: 진행바 + 버튼 -->
+          <div class="ar-hud ar-hud-bottom">
+            <div class="timer-wrap" id="timer-ui">
+              <div class="timer-bar-track"><div id="image-timer-bar" class="timer-bar-fill"></div></div>
+              <div id="image-status-label">이미지 스캔 중...</div>
+            </div>
+            <div class="ar-actions is-hidden">
+              <button id="btn-ar-action" class="btn btn-gift" type="button" disabled>퀴즈 풀러 가기</button>
+            </div>
+          </div>
+        </section>
 
-    <button id="btn-start" class="btn btn-primary">시작하기</button>
-    <p class="hint">카메라 권한 요청이 표시되면 허용해주세요.</p>
-  </div>
-</section>
-        
-        <!-- ============================== SCREEN 2 : POSE AUTH ============================== -->
- <section id="screen-pose" class="ar-screen">
-  <video id="pose-video" playsinline autoplay muted></video>
-
-  <div class="guide-icon-wrap">
-    <span class="guide-icon" id="guide-icon" data-icon="thumbs_up"></span>
-  </div>
-
-  <div class="hud-top">
-    <div class="hud-banner">
-      <span class="badge-inline">POSE CHALLENGE</span>
-      <span id="pose-banner-text">엄지척 포즈를 인식시켜 주세요</span>
-    </div>
-  </div>
-
-  <button id="btn-flip-camera" class="icon-btn hud-flip" title="카메라 전환">⟲</button>
-
-  <div class="hud-bottom">
-    <div class="progress-ring-wrap">
-      <svg class="progress-ring" viewBox="0 0 120 120">
-        <circle class="progress-ring-bg" cx="60" cy="60" r="52"></circle>
-        <circle id="progress-ring-fg" class="progress-ring-fg" cx="60" cy="60" r="52"></circle>
-      </svg>
-      <div class="progress-ring-label" id="pose-status-label">포즈 인식 대기중</div>
-    </div>
-  </div>
-</section>
-        
-        <!-- TRANSITION OVERLAY -->
-<div id="step-transition" aria-hidden="true">
-  <img id="transition-bg" alt="">
-  <div class="transition-scrim"></div>
-  <div class="transition-content">
-    <div class="spinner"></div>
-    <div class="transition-label">2단계 준비 중...</div>
-    <div class="transition-sub">엑스배너 이미지 인식으로 이동할게요</div>
-  </div>
-</div>
-
-        <!-- ============================== SCREEN 3 : IMAGE RECOGNITION ============================== -->
-<section id="screen-image" class="ar-screen">
-  <div id="ar-mount"></div>
-
-  <div class="hud-top">
-    <div class="hud-banner">
-      <span class="badge-inline">IMAGE CHALLENGE</span>
-      <span id="image-banner-text">엑스배너 이미지를 화면 안에 비춰주세요</span>
-    </div>
-  </div>
-
-  <div class="hud-bottom">
-    <div class="timer-wrap">
-      <div class="timer-bar-track"><div id="image-timer-bar" class="timer-bar-fill"></div></div>
-      <div id="image-status-label">이미지 스캔 중...</div>
-    </div>
-    <button id="btn-give-up" class="btn btn-ghost">그만하기</button>
-  </div>
-</section>
-        
-        <!-- ============================== SCREEN 4 : RESULT ============================== -->
-<section id="screen-result" class="ar-screen">
-  <div class="card" id="result-card">
-    <div id="result-icon" class="result-icon"></div>
-    <h1 id="result-title">인증 성공!</h1>
-    <p id="result-sub" class="sub">두 단계를 모두 완료했어요.</p>
-
-    <div class="snapshot-wrap">
-      <img id="result-photo" class="snapshot" alt="포즈 인증 + 이미지 인식 합성 사진">
-    </div>
-
-    <div class="result-actions">
-      <button id="btn-quiz" class="btn btn-gift" style="display:none">퀴즈 풀고 스탬프 받기</button>
-      <button id="btn-download" class="btn btn-secondary">사진 저장하기</button>
-      <button id="btn-retry" class="btn btn-primary">다시 도전하기</button>
-    </div>
-  </div>
-</section>
-
-        <canvas id="compose-canvas" style="display:none"></canvas>
       </div>
     `;
   }
@@ -1528,7 +1477,7 @@ async function flushOfflineQueue() {
     });
     const data = await res.json();
     
-    if (data.success) {
+    if (data.success || data.already_submitted) {
       localStorage.removeItem("dima_offline_queue"); // 큐 비우기
       
       // 완료 화면에 떠 있는 상태 텍스트 강제 변경

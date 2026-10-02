@@ -729,3 +729,112 @@ body {
   font-size: 13px !important;
   margin-top: 18px !important;
 }
+
+/* ===== AR 이미지 인식 화면 HUD 정렬 =====
+   상단 배너 / 진행바 / 그만하기 / 퀴즈로 이동을 모두 같은 시작점, 화면 폭 90%로 맞춤 */
+#ar-quest-container .ar-hud {
+  position: absolute;
+  z-index: 20;
+  left: 5%;
+  right: 5%;
+  width: auto;
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+#ar-quest-container .ar-hud * {
+  box-sizing: border-box;
+}
+
+#ar-quest-container .ar-hud-top {
+  /* 왼쪽 위 뒤로가기 버튼(44px) 아래에 배치해 겹치지 않게 함 */
+  top: calc(env(safe-area-inset-top, 0px) + 20px);
+}
+
+#ar-quest-container .ar-hud-bottom {
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 36px);
+}
+
+#ar-quest-container .ar-hud .hud-banner {
+  display: flex;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 10px 14px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 12px;
+  text-align: center;
+}
+
+#ar-quest-container .ar-hud .timer-wrap {
+  width: 100%;
+  max-width: none;
+  margin: 0 0 12px;
+  padding: 0;
+}
+
+#ar-quest-container .ar-hud .timer-bar-track {
+  width: 100%;
+  margin: 0;
+}
+
+#ar-quest-container .ar-hud #image-status-label {
+  margin: 6px 0 0;
+  text-align: center;
+}
+
+#ar-quest-container .ar-actions {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 10px;
+}
+
+#ar-quest-container .ar-actions .btn {
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0;
+  min-height: 52px;
+  margin: 0 !important;
+  justify-content: center;
+}
+
+/* 퀴즈 버튼 대기 상태: 그라데이션 유지 + 흐리게 */
+#ar-quest-container .ar-actions .btn-gift:disabled {
+  color: rgba(255, 255, 255, 0.85);
+  background: linear-gradient(100deg, #f00095 0%, #8a42ff 58%, #ff9a2f 100%);
+  opacity: 0.45;
+  box-shadow: none;
+  cursor: wait;
+}
+
+/* 퀴즈 버튼 활성화 시: 눌러보라는 신호로 깜빡임 */
+#ar-quest-container .ar-actions .btn-gift:not(:disabled) {
+  animation: blink-shadow 1.5s infinite;
+}
+
+/* 하단 버튼 숨김 (.app-main .btn 의 display:flex !important 를 이기기 위해 !important 필요) */
+#ar-quest-container .ar-actions.is-hidden {
+  display: none !important;
+}
+
+/* 8th Wall 촬영 버튼: 인식 전엔 숨김 */
+body:not(.ar-target-found) #recorder,
+body:not(.ar-target-found) .recorder-container,
+body:not(.ar-target-found) #recorder-container {
+  display: none !important;
+}
+
+#recorder,
+.recorder-container,
+#recorder-container {
+  z-index: 10001 !important;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 100px) !important;
+}
+#previewContainer {
+  z-index: 10002 !important;
+}
