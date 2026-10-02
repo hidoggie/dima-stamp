@@ -804,6 +804,7 @@ app.get("/api/admin/surveys", authenticateAdmin, verifyStatAccess, async (req, r
     try {
         const surveyRes = await pool.query(`
             SELECT id, user_id, idempotency_key, q1, q2, q3, q4, q5, name, student_id, department, phone, created_at,
+            TO_CHAR(created_at, 'YYYY-MM-DD HH24:MI') AS created_at_kst,
                    TO_CHAR(event_day, 'YYYY-MM-DD') AS event_day
             FROM dima_surveys 
             WHERE is_deleted = FALSE
