@@ -1747,23 +1747,37 @@ html, body {
   flex-direction: column;
 }
 
-/* 남는 세로 공간을 선택지 영역이 차지하고, 선택지는 그 가운데에 배치 */
-.quiz-screen .option-list {
-  flex: 1;
+/* 질문 카드: 남는 세로 공간을 차지 (단, 너무 커지지 않게 상한) */
+.quiz-screen .question-card {
+  flex: 1 1 auto;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: clamp(10px, 2dvh, 18px);
-  margin-top: clamp(8px, 2dvh, 20px);
+  align-items: center;
+  min-height: clamp(110px, 20dvh, 170px);
+  max-height: 240px;
+  margin-top: 4px;
+  padding: clamp(16px, 3dvh, 28px) 20px;
+  border-radius: 16px;
+}
+
+.quiz-screen .question-card h2 {
+  font-size: clamp(17px, 5vw, 22px);
+  line-height: 1.5;
+  word-break: keep-all;
+}
+
+/* 선택지: 고정된 적당한 높이 */
+.quiz-screen .option-list {
+  gap: clamp(8px, 1.5dvh, 12px);
+  margin-top: clamp(12px, 2dvh, 18px);
 }
 
 .quiz-screen .option {
-  min-height: clamp(62px, 12.5dvh, 120px);
+  min-height: clamp(58px, 8.5dvh, 72px);
   grid-template-columns: 38px 1fr;
   gap: 12px;
-  padding: 10px 16px;
-  border-radius: 16px;
-  font-size: clamp(16px, 4.6vw, 20px);
+  padding: 8px 16px;
+  border-radius: 14px;
+  font-size: clamp(16px, 4.4vw, 18px);
   font-weight: 700;
 }
 
@@ -1773,22 +1787,19 @@ html, body {
   font-size: 15px;
 }
 
-/* 버튼은 항상 화면 하단(엄지 위치) */
+/* 버튼: 선택지 바로 아래 */
 .quiz-screen .button-stack {
-  margin-top: 0 !important;
-  padding-top: clamp(10px, 2.5dvh, 24px);
+  margin-top: clamp(14px, 2.5dvh, 22px) !important;
 }
 
 .quiz-screen #quiz-submit {
-  min-height: clamp(54px, 8.5dvh, 70px) !important;
-  border-radius: 16px;
-  font-size: clamp(16px, 4.6vw, 19px);
+  min-height: clamp(54px, 8dvh, 66px) !important;
+  border-radius: 14px;
+  font-size: clamp(16px, 4.4vw, 18px);
 }
 
-/* 아이폰 SE 등 세로가 짧은 화면: 위쪽 요소를 살짝 압축 */
+/* 아이폰 SE 등 세로가 짧은 화면 */
 @media (max-height: 600px) {
   .quiz-screen .title { font-size: 27px; margin: 2px 0; }
   .quiz-screen .progress { margin: 8px 0; }
-  .quiz-screen .question-card { padding: 14px 14px; }
-  .quiz-screen .question-card h2 { font-size: 15px; }
 }
