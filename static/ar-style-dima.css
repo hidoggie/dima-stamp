@@ -823,14 +823,17 @@ body {
 }
 
 /* 8th Wall 촬영 버튼: 인식 전엔 숨김 */
+body:not(.ar-target-found) #recorder,
+body:not(.ar-target-found) .recorder-container,
 body:not(.ar-target-found) #recorder-container {
   display: none !important;
 }
 
-/* AR 컨테이너(z-index 9999) 위로 올리고, 퀴즈 버튼과 겹치지 않게 위로 배치 */
+#recorder,
+.recorder-container,
 #recorder-container {
   z-index: 10001 !important;
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 112px) !important;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 130px) !important;
 }
 #previewContainer {
   z-index: 10002 !important;
