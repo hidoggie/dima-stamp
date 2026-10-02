@@ -331,11 +331,27 @@ function teardownArScene() {
   stopModel();
   document.body.classList.remove("ar-target-found");
 
+  const sceneEl = state.currentSceneEl;
+
   try {
-    if (window.XR8 && typeof window.XR8.stop === "function") window.XR8.stop();
+    if (window.XR8) {
+      if (typeof window.XR8.stop === "function") window.XR8.stop();
+      // 이전 씬이 등록한 카메라 파이프라인 모듈 제거 → 재진입 시 새 캔버스에 다시 연결됨
+      if (typeof window.XR8.clearCameraPipelineModules === "function") {
+        window.XR8.clearCameraPipelineModules();
+      }
+    }
   } catch (err) {
-    console.warn("XR8.stop() failed", err);
+    console.warn("XR8 정리 실패", err);
   }
+
+  // WebGL 렌더러 정리 (반복 진입 시 iOS 그래픽 자원 누적 방지)
+  try {
+    if (sceneEl && sceneEl.renderer) sceneEl.renderer.dispose();
+  } catch (err) {
+    console.warn("renderer dispose 실패", err);
+  }
+
   state.currentSceneEl = null;
 
   const arMount = $("#ar-mount");
