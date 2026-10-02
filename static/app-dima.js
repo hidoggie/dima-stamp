@@ -465,7 +465,7 @@ function stampRow(id) {
   function miniCard(id) {
     const zone = ZONES[id];
     return `<article class="glass-card mini-card" style="${zoneStyle(zone)}">
-      <img src="${zone.stamp}" alt="${id} 스탬프" />
+      <img src="${zone.stampBook || zone.stamp}" alt="${id} 스탬프" />
       <div><strong>${id} · ${zone.name}</strong><span>${zone.meaning}</span></div>
     </article>`;
   }
@@ -787,7 +787,7 @@ function stampRow(id) {
       <h3 style="color:${zone.color}">${escapeHtml(zone.correctTitle)}</h3>
       <p><strong style="color:#fff">${escapeHtml(zone.meaning)}</strong><br />${escapeHtml(zone.correctBody)}</p>
       <div class="modal-divider"></div>
-      <img class="modal-stamp" src="${zone.stamp}" alt="${zone.id} 스탬프 획득" />
+      <img class="modal-stamp" src="${zone.stampBook || zone.stamp}" alt="${zone.id} 스탬프 획득" />
       <h3 style="color:${zone.color}">${escapeHtml(zone.stampTitle)}</h3>
       <p>${escapeHtml(zone.stampBody)}</p>
       <div class="button-stack"><button class="btn btn-zone" type="button" data-action="after-stamp" style="${zoneStyle(zone)}">다음으로</button></div>`,
