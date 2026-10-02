@@ -490,8 +490,7 @@ function stampRow(id) {
     if (kstToday() >= FESTA_LAST_DAY) return "";
     return `<div class="revisit-card">
       <span class="revisit-label">📅 내일 또 만나요!</span>
-      <strong>10월 8일(목)에 <em>한 번 더</em> 참여할 수 있어요!</strong>
-      <p>내일 다시 접속하면 스탬프가 새로 시작돼요.<br />4개 스탬프와 만족도 조사를 한 번 더 완료해 주세요.</p>
+      <strong>10월 8일(목)에 <em>한 번 더</em> 참여할 수 있어요!</strong>      
     </div>`;
   }
 
@@ -669,20 +668,20 @@ function stampRow(id) {
   }
 
   function renderDone() {
-    return `<section class="screen center" aria-labelledby="done-title" style="padding-top: 10vh;">
-      <div class="complete-check inline-icon" style="transform: scale(1.1); margin-bottom: 24px;">${icon("check")}</div>
-      
-      <!-- display를 inline-flex로 변경하고 수직/수평 중앙 정렬 속성 강제 부여 -->
-      <span class="eyebrow" style="margin-bottom: 16px; display: inline-flex; align-items: center; justify-content: center; line-height: 1; padding-top: 2px;">COMPLETE</span>
-      
-      <h1 class="title" id="done-title" style="margin-bottom: 20px;">참여가 완료되었습니다.</h1>
+    return `<section class="screen center" aria-labelledby="done-title" style="padding-top: 3vh;">
+      <div class="complete-check inline-icon" style="margin-bottom: 14px;">${icon("check")}</div>
+
+      <span class="eyebrow" style="margin-bottom: 12px; display: inline-flex; align-items: center; justify-content: center; line-height: 1; padding-top: 2px;">COMPLETE</span>
+
+      <h1 class="title" id="done-title" style="margin-bottom: 0;">참여가 완료되었습니다.</h1>
+
       ${revisitNoticeHtml()}
-      <p class="lead" style="margin-bottom: 40px;">GIFT Festa 2026에 참여해 주셔서 감사합니다.</p>
-      
-      <div class="miracle" style="margin-top: 50px; margin-bottom: 50px; font-size: 32px;">Miracle DIMA</div>
-      
+
+      <p class="lead" style="margin-top: 22px;">GIFT Festa 2026에 참여해 주셔서 감사합니다.</p>
+
+      <div class="miracle" style="margin: 22px 0 26px; font-size: 32px;">Miracle DIMA</div>
+
       <div class="button-stack">
-        ${state.certCanvas ? `<button class="btn" type="button" data-action="cert-again">확인증 다시 저장하기</button>` : ""}
         <button class="btn btn-primary" type="button" data-action="home">처음 화면으로</button>
       </div>
     </section>`;
