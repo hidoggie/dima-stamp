@@ -1573,3 +1573,15 @@ html, body {
 .modal .guide-modal-actions .btn {
   font-size: 14px;
 }
+
+/* 확인증 미리보기: iOS 길게 눌러 저장 가능하도록 */
+.cert-preview {
+  width: 100%;
+  margin: 14px auto 4px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  -webkit-touch-callout: default !important;
+  -webkit-user-select: auto !important;
+  user-select: auto !important;
+  pointer-events: auto !important;
+}

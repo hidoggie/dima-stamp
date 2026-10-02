@@ -640,6 +640,7 @@ function stampRow(id) {
       <div class="miracle" style="margin-top: 50px; margin-bottom: 50px; font-size: 32px;">Miracle DIMA</div>
       
       <div class="button-stack">
+        ${state.certCanvas ? `<button class="btn" type="button" data-action="cert-again">확인증 다시 저장하기</button>` : ""}
         <button class="btn btn-primary" type="button" data-action="home">처음 화면으로</button>
       </div>
     </section>`;
@@ -843,14 +844,137 @@ function stampRow(id) {
       <div class="final-brand"><em>Miracle DIMA,</em><strong>${giftLetters()} Festa 2026</strong></div>
       
       <!-- 3. 확인 버튼 위 안내 문구 추가 -->
-      <p class="note" style="margin-top:20px; text-align:center; word-break:keep-all;">※ 만일의 경우를 대비하여 확인 버튼 클릭 시 완료 보관증이 기기에 자동 다운로드됩니다.</p>
-      
+        <p class="note" style="margin-top:20px; text-align:center; word-break:keep-all;">※ 확인 버튼을 누르면 완료 확인증을 저장할 수 있어요. (iPhone은 공유 창에서 '이미지 저장' 선택)</p>      
       <!-- 2. 단일 버튼으로 통합 -->
       <div class="button-stack">
         <button class="btn btn-gift" type="button" data-action="confirm-final">확인</button>
       </div>`,
       "final-title",
       "#B044FF",
+    );
+    prepareCertificate();
+  }
+
+    const CERT_FILE_NAME = "GIFT_완료확인증.png";
+
+  function isIOS() {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  }
+
+  function drawCertificate() {
+    const canvas = document.createElement("canvas");
+    canvas.width = 600;
+    canvas.height = 480;
+    const ctx = canvas.getContext("2d");
+
+    ctx.fillStyle = "#100f16";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const rx = 30, ry = 30, rw = 540, rh = 420, radius = 15;
+    ctx.beginPath();
+    ctx.moveTo(rx + radius, ry);
+    ctx.lineTo(rx + rw - radius, ry);
+    ctx.quadraticCurveTo(rx + rw, ry, rx + rw, ry + radius);
+    ctx.lineTo(rx + rw, ry + rh - radius);
+    ctx.quadraticCurveTo(rx + rw, ry + rh, rx + rw - radius, ry + rh);
+    ctx.lineTo(rx + radius, ry + rh);
+    ctx.quadraticCurveTo(rx, ry + rh, rx, ry + rh - radius);
+    ctx.lineTo(rx, ry + radius);
+    ctx.quadraticCurveTo(rx, ry, rx + radius, ry);
+    ctx.closePath();
+    ctx.fillStyle = "#1c1b29";
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "#B044FF";
+    ctx.stroke();
+
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 32px sans-serif";
+    ctx.fillText("GIFT Festa 2026 확인증", canvas.width / 2, 95);
+
+    ctx.beginPath();
+    ctx.moveTo(70, 130);
+    ctx.lineTo(530, 130);
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = "#444444";
+    ctx.stroke();
+
+    ctx.textAlign = "left";
+    ctx.font = "22px sans-serif";
+    ctx.fillStyle = "#eeeeee";
+    const startX = 80;
+    let startY = 190;
+    const lineH = 50;
+    ctx.fillText(`▪ 이름: ${state.participant.name}`, startX, startY); startY += lineH;
+    ctx.fillText(`▪ 학번: ${state.participant.studentId}`, startX, startY); startY += lineH;
+    ctx.fillText(`▪ 인증코드: ${(state.idempotencyKey || "").split("-")[0]}`, startX, startY); startY += lineH;
+
+    ctx.font = "20px sans-serif";
+    ctx.fillStyle = "#aaaaaa";
+    ctx.fillText(`▪ 저장일시: ${new Date().toLocaleString()}`, startX, startY + 30);
+
+    return canvas;
+  }
+
+  // 팝업이 뜰 때 미리 생성 → 버튼 탭 직후 바로 share() 호출 가능
+  function prepareCertificate() {
+    state.certCanvas = drawCertificate();
+    state.certFile = null;
+    state.certCanvas.toBlob((blob) => {
+      if (blob) state.certFile = new File([blob], CERT_FILE_NAME, { type: "image/png" });
+    }, "image/png");
+  }
+
+  function finishToDone() {
+    closeModal(false);
+    navigate("done", true);
+  }
+
+  function saveCertificate() {
+    if (!state.certCanvas) prepareCertificate();
+    const file = state.certFile;
+
+    // iPhone: 공유 창 → '이미지 저장' (실패·취소 시 길게 눌러 저장 안내)
+    if (isIOS()) {
+      if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+        navigator
+          .share({ files: [file], title: "GIFT Festa 2026 확인증" })
+          .then(finishToDone)
+          .catch(() => showCertificateFallback());
+      } else {
+        showCertificateFallback();
+      }
+      return;
+    }
+
+    // 안드로이드 / PC: 파일 다운로드 후, 실패 대비 안내 화면 표시
+    const link = document.createElement("a");
+    link.download = CERT_FILE_NAME;
+    link.href = state.certCanvas.toDataURL("image/png");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    finishToDone(); 
+  }
+
+  function showCertificateFallback(downloaded = false) {
+    if (!state.certCanvas) prepareCertificate();
+    const message = downloaded
+      ? `확인증을 다운로드했어요. <span style="white-space:nowrap">(내 파일 › 다운로드)</span><br />저장이 안 됐다면 아래 이미지를 <strong style="color:#fff">길게 눌러</strong> 저장해 주세요.`
+      : `아래 이미지를 <strong style="color:#fff">길게 눌러</strong><br />'사진 앱에 저장'을 선택해 주세요.`;
+
+    showModal(
+      `<h2 id="cert-title">확인증 저장</h2>
+      <p>${message}</p>
+      <img class="cert-preview" src="${state.certCanvas.toDataURL("image/png")}" alt="GIFT Festa 2026 확인증" />
+      <div class="button-stack">
+        <button class="btn btn-gift" type="button" data-action="cert-done">저장했어요</button>
+      </div>`,
+      "cert-title",
+      "#B044FF",
+      false,
     );
   }
 
@@ -1063,6 +1187,7 @@ function handleParticipant(form) {
     if (action === "complete") navigate("complete");
     if (action === "survey") navigate("survey1");
     if (action === "guide") showGuide(control.dataset.guide);
+    if (action === "cert-again") showCertificateFallback();
   });
 
 
@@ -1219,95 +1344,8 @@ async function submitFinalData() {
     }
 
     if (action === "confirm-final") {
-      const canvas = document.createElement("canvas");
-      canvas.width = 600; 
-      canvas.height = 480;
-      const ctx = canvas.getContext("2d");
-
-      // 1~5. 배경 및 텍스트 렌더링 (이전 코드와 동일)
-      ctx.fillStyle = "#100f16"; 
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      const rx = 30, ry = 30, rw = 540, rh = 420, radius = 15;
-      ctx.beginPath();
-      ctx.moveTo(rx + radius, ry);
-      ctx.lineTo(rx + rw - radius, ry);
-      ctx.quadraticCurveTo(rx + rw, ry, rx + rw, ry + radius);
-      ctx.lineTo(rx + rw, ry + rh - radius);
-      ctx.quadraticCurveTo(rx + rw, ry + rh, rx + rw - radius, ry + rh);
-      ctx.lineTo(rx + radius, ry + rh);
-      ctx.quadraticCurveTo(rx, ry + rh, rx, ry + rh - radius);
-      ctx.lineTo(rx, ry + radius);
-      ctx.quadraticCurveTo(rx, ry, rx + radius, ry);
-      ctx.closePath();
-      
-      ctx.fillStyle = "#1c1b29"; 
-      ctx.fill();
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = "#B044FF"; 
-      ctx.stroke();
-
-      ctx.textAlign = "center";
-      ctx.fillStyle = "#ffffff"; 
-      ctx.font = "bold 32px sans-serif";
-      ctx.fillText("GIFT Festa 2026 확인증", canvas.width / 2, 95);
-
-      ctx.beginPath();
-      ctx.moveTo(70, 130);
-      ctx.lineTo(530, 130);
-      ctx.lineWidth = 1;
-      ctx.strokeStyle = "#444444";
-      ctx.stroke();
-
-      ctx.textAlign = "left";
-      ctx.font = "22px sans-serif";
-      ctx.fillStyle = "#eeeeee";
-      
-      const startX = 80;
-      let startY = 190;
-      const lineH = 50;
-
-      ctx.fillText(`▪ 이름: ${state.participant.name}`, startX, startY); startY += lineH;
-      ctx.fillText(`▪ 학번: ${state.participant.studentId}`, startX, startY); startY += lineH;
-      ctx.fillText(`▪ 인증코드: ${(state.idempotencyKey || "").split('-')[0]}`, startX, startY); startY += lineH;
-      
-      ctx.font = "20px sans-serif";
-      ctx.fillStyle = "#aaaaaa";
-      ctx.fillText(`▪ 저장일시: ${new Date().toLocaleString()}`, startX, startY + 30);
-
-      // ★ 아이폰(iOS) 완벽 대응을 위한 비동기 다운로드 및 Web Share API 적용
-      canvas.toBlob(async (blob) => {
-        if (!blob) return;
-        const fileName = "GIFT_완료확인증.png";
-        const file = new File([blob], fileName, { type: "image/png" });
-
-        // iOS 사파리 등 Web Share API 지원 기기 (네이티브 공유 창 호출)
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          try {
-            await navigator.share({
-              files: [file],
-              title: "GIFT Festa 2026 확인증"
-            });
-          } catch (err) {
-            // 사용자가 공유 창을 취소하고 닫은 경우 무시하고 다음으로 넘어감
-            console.warn("Share API 취소 또는 에러", err);
-          }
-        } else {
-          // 안드로이드 및 PC 웹 브라우저 폴백 (기존 <a> 태그 다운로드 방식)
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement("a");
-          link.download = fileName;
-          link.href = url;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          setTimeout(() => URL.revokeObjectURL(url), 10000);
-        }
-
-        // 다운로드/공유 창 액션이 끝나면 무조건 최종 참여 완료 화면으로 이동
-        closeModal(false);
-        navigate("done", true);
-      }, "image/png");
+      if (action === "confirm-final") saveCertificate();
+      if (action === "cert-done") finishToDone();
     }
 
     if (action === "reset") {
