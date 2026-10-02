@@ -80,14 +80,15 @@
             
             <div class="summary-grid">
                 <div class="summary-card">
-                    <div class="summary-title">스탬프 4개 완주자 수</div>
+                    <div class="summary-title">스탬프 4개 완주 (건)</div>
                     <div class="summary-value" id="sum-completed-stamps">0</div>
                 </div>
                 <div class="summary-card">
-                    <div class="summary-title">설문 완료 인원 (경품/협조문 대상)</div>
+                    <div class="summary-title">설문 완료 (건) · 경품/협조문 대상</div>
                     <div class="summary-value" id="sum-completed-surveys" style="color: #9656FF;">0</div>
                 </div>
             </div>
+            <p style="margin:-18px 0 20px; color:#888; font-size:13px;">※ 7일·8일 각 1회 참여 가능 — 이틀 모두 참여한 학생은 2건으로 집계됩니다.</p>
 
             <h3 style="margin-top: 30px; color: #2b2b2b;">⏰ 시간대별 참여 현황 (최근 순)</h3>
             <div class="table-responsive">
@@ -175,6 +176,32 @@
         let pollingTimer = null, idleCheckTimer = null;
 
         // --- 공통 유틸 ---
+        // 학생이 입력한 값(이름, 학과, 주관식 등)을 화면에 넣기 전 HTML 무력화 (스크립트 삽입 방지)
+        function esc(value) {
+            return String(value ?? '')
+                .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;').replaceAll("'", '&#039;');
+        }
+
+        // 한국 시간 기준 오늘 날짜 (YYYY-MM-DD)
+        function kstToday() {
+            return new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
+        }
+
+        // 세션 만료(401) 시 로그인 화면으로
+        function checkAuth(res) {
+            if (res.status === 401) {
+                executeLogout(false, "관리자 세션이 만료되었습니다. 다시 로그인해 주세요.");
+                return false;
+            }
+            return true;
+        }
+
+        // 참여 일시: 서버가 한국 시간 문자열(created_at_kst)을 주면 그대로 사용
+        function surveyTime(s) {
+            return s.created_at_kst || formatKST(s.created_at);
+        }
+
         function formatKST(dateString) {
             if (!dateString) return '-';
             let d = new Date(dateString);
@@ -243,6 +270,7 @@
                     fetch(`/api/admin/dashboard-stats${query}`),
                     fetch(`/api/admin/hourly-stats${query}`)
                 ]);
+                if (!checkAuth(dashRes) || !checkAuth(hourlyRes)) return;
 
                 const dashData = await dashRes.json();
                 const hourlyData = await hourlyRes.json();
@@ -255,7 +283,7 @@
                 if (hourlyData.success && hourlyData.stats) {
                     document.getElementById('dash-hourly-body').innerHTML = hourlyData.stats.map(s => `
                         <tr>
-                            <td style="font-weight:bold;">${s.time_range}</td>
+                            <td style="font-weight:bold;">${esc(s.time_range)}</td>
                             <td>${s.complete_count} 명</td>
                             <td style="color:#9656FF; font-weight:bold;">${s.survey_count || s.complete_count} 명</td>
                         </tr>
@@ -268,7 +296,8 @@
         async function fetchSurveyData() {
             try {
                 // 주의: server.js 에 설문 전체 리스트를 반환하는 '/api/admin/surveys' API가 필요합니다.
-                const res = await fetch("/api/admin/surveys"); 
+                const res = await fetch("/api/admin/surveys");
+                if (!checkAuth(res)) return;
                 const data = await res.json();
                 if (data.success) {
                     globalSurveys = data.surveys;
@@ -286,11 +315,13 @@
 
             filteredSurveys = globalSurveys.filter(s => {
                 let pass = true;
+                // 일자 필터는 참여일(event_day, 한국 날짜) 기준
                 if (dateFilter) {
-                    const sDate = new Date(s.created_at).toISOString().split('T')[0];
+                    const sDate = s.event_day || surveyTime(s).slice(0, 10);
                     if (sDate !== dateFilter) pass = false;
                 }
-                if (searchId && !s.student_id.toLowerCase().includes(searchId)) {
+                // 수동 등록 등으로 학번이 비어 있어도 에러 나지 않게
+                if (searchId && !String(s.student_id || '').toLowerCase().includes(searchId)) {
                     pass = false;
                 }
                 return pass;
@@ -359,16 +390,16 @@
             } else {
                 document.getElementById("survey-table-body").innerHTML = sliced.map(s => `
                     <tr>
-                        <td style="color:#666;">${formatKST(s.created_at)}</td>
-                        <td><b>${s.student_id || '-'}</b></td>
-                        <td>${s.name || '-'}</td>
-                        <td>${s.department || '-'}</td>
-                        <td>${s.phone || '-'}</td>
-                        <td style="text-align:center;">${s.q1 || '-'}</td>
-                        <td style="text-align:center;">${s.q2 || '-'}</td>
-                        <td style="text-align:center;">${s.q3 || '-'}</td>
-                        <td><div style="max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${s.q4 || ''}">${s.q4 || '-'}</div></td>
-                        <td style="text-align:center;">${s.q5 || '-'}</td>
+                        <td style="color:#666;">${esc(surveyTime(s))}</td>
+                        <td><b>${esc(s.student_id || '-')}</b></td>
+                        <td>${esc(s.name || '-')}</td>
+                        <td>${esc(s.department || '-')}</td>
+                        <td>${esc(s.phone || '-')}</td>
+                        <td style="text-align:center;">${esc(s.q1 || '-')}</td>
+                        <td style="text-align:center;">${esc(s.q2 || '-')}</td>
+                        <td style="text-align:center;">${esc(s.q3 || '-')}</td>
+                        <td><div style="max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${esc(s.q4 || '')}">${esc(s.q4 || '-')}</div></td>
+                        <td style="text-align:center;">${esc(s.q5 || '-')}</td>
                     </tr>
                 `).join('');
             }
@@ -404,7 +435,8 @@
             if (filteredSurveys.length === 0) return alert("다운로드할 데이터가 없습니다.");
 
             const excelData = filteredSurveys.map(s => ({
-                "참여 일시": formatKST(s.created_at),
+                "참여일": s.event_day || surveyTime(s).slice(0, 10),
+                "참여 일시": surveyTime(s),
                 "학번": s.student_id,
                 "성명": s.name,
                 "학과(전공)": s.department,
@@ -420,14 +452,14 @@
             
             // 칸 너비 최적화
             worksheet['!cols'] = [
-                { wch: 18 }, { wch: 15 }, { wch: 10 }, { wch: 20 }, { wch: 15 },
+                { wch: 12 }, { wch: 18 }, { wch: 15 }, { wch: 10 }, { wch: 20 }, { wch: 15 },
                 { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 40 }, { wch: 15 }
             ];
 
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "참여자_및_설문결과");
 
-            const today = new Date().toISOString().split('T')[0];
+            const today = kstToday();
             XLSX.writeFile(workbook, `GIFT_Festa_참여자목록_${today}.xlsx`);
         }
 
