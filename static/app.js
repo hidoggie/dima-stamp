@@ -489,10 +489,15 @@ function stampRow(id) {
       <div class="gift-banner"><strong>당신이 모은 네 가지가 바로 DIMA의 GIFT입니다.</strong></div>
       <p class="lead" style="margin-top:14px">한 해의 배움과 도전이 기적 같은 결실이 되는 순간,</p>
       <div class="miracle">Miracle DIMA</div>
+      ${state.isSurveyDone ? "" : `
+        <div class="prize-banner">
+          <span class="prize-label">🎁 추첨 혜택</span>
+          <strong>추첨하여 <em>10만원 상품권</em> 혜택</strong>
+        </div>`}
       <div class="button-stack">
         ${surveyBtnHtml}
       </div>
-      <p class="note">만족도 조사 완료 후 모바일 상품권 지급 및 수업협조문 신청이 가능합니다.</p>
+      <p class="note">만족도 조사 완료 후 모바일 편의점 상품권 지급 및 수업협조문 신청이 가능합니다.</p>
     </section>`;
   }
 
@@ -545,13 +550,13 @@ function stampRow(id) {
           ${surveyOptions("q3", SURVEY_OPTIONS, state.survey.q3)}
         </fieldset>
         <div class="glass-card survey-card">
-          <label for="q4"><h2><strong>Q4.</strong> GIFT Festa에서 가장 인상 깊었던 성과 또는 새롭게 알게 된 점을 한 가지 적어주세요.</h2></label>
-          <textarea class="textarea" id="q4" name="q4" minlength="20" maxlength="100" placeholder="20~100자로 입력해 주세요." required>${escapeHtml(q4)}</textarea>
+          <label for="q4"><h2><strong>Q4.</strong> GIFT Festa에서 가장 인상 깊었던 성과 또는 새롭게 알게 된 점을 한 가지 적어주세요. <span style="color:var(--muted-2); font-size:12px; font-weight:700;">(선택)</span></h2></label>
+          <textarea class="textarea" id="q4" name="q4" maxlength="100" placeholder="자유롭게 입력해 주세요. (최대 100자)">${escapeHtml(q4)}</textarea>
           <span class="char-count" id="q4-count">${q4.length} / 100자</span>
         </div>
         <fieldset class="glass-card survey-card">
-          <legend class="eyebrow" style="margin-bottom:10px">선택 추가문항</legend>
-          <h2>GIFT Festa 2026에 전반적으로 만족하셨습니까?</h2>
+          <legend class="sr-only">문항 5</legend>
+          <h2><strong>Q5.</strong> GIFT Festa 2026에 전반적으로 만족하셨습니까?</h2>
           ${surveyOptions("q5", SATISFACTION_OPTIONS, state.survey.q5)}
         </fieldset>
         <p class="error" id="survey2-error" hidden></p>
@@ -1032,17 +1037,17 @@ function stampRow(id) {
   function handleSurvey2(form) {
     const data = new FormData(form);
     const q4 = String(data.get("q4") || "").trim();
-    if (!data.get("q3")) {
-      showError("#survey2-error", "Q3에 응답해 주세요.");
+    if (!data.get("q3") || !data.get("q5")) {
+      showError("#survey2-error", "Q3과 Q5에 모두 응답해 주세요.");
       return;
     }
-    if (q4.length < 20 || q4.length > 100) {
-      showError("#survey2-error", "Q4는 20~100자로 작성해 주세요.");
+    if (q4.length > 100) {
+      showError("#survey2-error", "Q4는 100자 이내로 작성해 주세요.");
       return;
     }
     state.survey.q3 = Number(data.get("q3"));
     state.survey.q4 = q4;
-    state.survey.q5 = data.get("q5") ? Number(data.get("q5")) : null;
+    state.survey.q5 = Number(data.get("q5"));
     navigate("participant");
   }
 
