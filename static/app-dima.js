@@ -1363,8 +1363,8 @@ async function submitFinalData() {
               <div class="timer-bar-track"><div id="image-timer-bar" class="timer-bar-fill"></div></div>
               <div id="image-status-label">이미지 스캔 중...</div>
             </div>
-            <div class="ar-actions">
-              <button id="btn-ar-action" class="btn btn-ghost" type="button">그만하기</button>
+            <div class="ar-actions is-hidden">
+              <button id="btn-ar-action" class="btn btn-gift" type="button" disabled>퀴즈 풀러 가기</button>
             </div>
           </div>
         </section>

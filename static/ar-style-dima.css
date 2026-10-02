@@ -816,3 +816,22 @@ body {
 #ar-quest-container .ar-actions .btn-gift:not(:disabled) {
   animation: blink-shadow 1.5s infinite;
 }
+
+/* 하단 버튼 숨김 (.app-main .btn 의 display:flex !important 를 이기기 위해 !important 필요) */
+#ar-quest-container .ar-actions.is-hidden {
+  display: none !important;
+}
+
+/* 8th Wall 촬영 버튼: 인식 전엔 숨김 */
+body:not(.ar-target-found) #recorder-container {
+  display: none !important;
+}
+
+/* AR 컨테이너(z-index 9999) 위로 올리고, 퀴즈 버튼과 겹치지 않게 위로 배치 */
+#recorder-container {
+  z-index: 10001 !important;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 96px) !important;
+}
+#previewContainer {
+  z-index: 10002 !important;
+}
