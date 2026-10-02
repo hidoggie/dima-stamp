@@ -754,7 +754,7 @@ body {
 }
 
 #ar-quest-container .ar-hud-bottom {
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 24px);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 36px);
 }
 
 #ar-quest-container .ar-hud .hud-banner {
@@ -830,7 +830,7 @@ body:not(.ar-target-found) #recorder-container {
 /* AR 컨테이너(z-index 9999) 위로 올리고, 퀴즈 버튼과 겹치지 않게 위로 배치 */
 #recorder-container {
   z-index: 10001 !important;
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 96px) !important;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 112px) !important;
 }
 #previewContainer {
   z-index: 10002 !important;

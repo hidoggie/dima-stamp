@@ -1338,8 +1338,7 @@ async function submitFinalData() {
 
   function renderAr() {
     return `
-      <div id="ar-quest-container" style="width:100%; height:100vh; position:fixed; top:0; left:0; z-index:9999; background:#000;">
-        
+      <div id="ar-quest-container" style="position:fixed; inset:0; width:100%; z-index:9999; background:#000;">        
         <!-- 뒤로가기 버튼 -->
         <button type="button" data-action="back" style="position:absolute; top:15px; left:15px; z-index:10000; background:transparent; border:none; padding:0; width:44px; height:44px; cursor:pointer;">
           <img src="assets/back-btn-white.png" alt="뒤로 가기" style="width:100%; height:100%; object-fit:contain;" />
