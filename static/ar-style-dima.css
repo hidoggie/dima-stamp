@@ -833,7 +833,7 @@ body:not(.ar-target-found) #recorder-container {
 .recorder-container,
 #recorder-container {
   z-index: 10001 !important;
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 112px) !important;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 100px) !important;
 }
 #previewContainer {
   z-index: 10002 !important;
