@@ -268,11 +268,16 @@
     participant: {},
     consent: false,
     isSurveyDone: false,
+    quizChoices: null,
   };
   let toastTimer = null;
   let previousFocus = null;
 
   const DRAFT_KEY = "dima_survey_draft_v1";
+
+  function kstToday() {
+    return new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
+  }
 
   function escapeHtml(value = "") {
     return String(value)
@@ -402,6 +407,15 @@
     </section>`;
   }
 
+  function getQuizChoices(zone) {
+    if (state.quizChoices && state.quizChoices.zone === zone.id) return state.quizChoices.indices;
+    const wrongs = zone.options.map((_, i) => i).filter((i) => i !== zone.answer);
+    const wrong = wrongs[Math.floor(Math.random() * wrongs.length)];
+    const indices = Math.random() < 0.5 ? [zone.answer, wrong] : [wrong, zone.answer];
+    state.quizChoices = { zone: zone.id, indices };
+    return indices;
+  }
+
   function renderQuiz() {
     const zone = ZONES[state.zone];
     const step = ORDER.indexOf(zone.id) + 1;
@@ -415,14 +429,11 @@
           <h2><span class="q-number">Q1.</span>${escapeHtml(zone.question)}</h2>
         </div>
         <div class="option-list" role="radiogroup" aria-label="${zone.id} Zone 퀴즈 선택지">
-          ${zone.options
+          ${getQuizChoices(zone)
             .map(
-              (
-                option,
-                index,
-              ) => `<label class="option ${state.selectedAnswer === index ? "selected" : ""}">
-            <input type="radio" name="answer" value="${index}" ${state.selectedAnswer === index ? "checked" : ""} />
-            <span class="option-index">${index + 1}</span><span>${escapeHtml(option)}</span>
+              (optIndex, pos) => `<label class="option ${state.selectedAnswer === optIndex ? "selected" : ""}">
+            <input type="radio" name="answer" value="${optIndex}" ${state.selectedAnswer === optIndex ? "checked" : ""} />
+            <span class="option-index">${pos + 1}</span><span>${escapeHtml(zone.options[optIndex])}</span>
           </label>`,
             )
             .join("")}
@@ -472,6 +483,18 @@ function stampRow(id) {
     </article>`;
   }
 
+  const FESTA_LAST_DAY = "2026-10-08";
+
+  // 마지막 날 전까지만 '내일 또 참여' 안내 표시
+  function revisitNoticeHtml() {
+    if (kstToday() >= FESTA_LAST_DAY) return "";
+    return `<div class="revisit-card">
+      <span class="revisit-label">📅 내일 또 만나요!</span>
+      <strong>10월 8일(목)에 <em>한 번 더</em> 참여할 수 있어요!</strong>
+      <p>내일 다시 접속하면 스탬프가 새로 시작돼요.<br />4개 스탬프와 만족도 조사를 한 번 더 완료해 주세요.</p>
+    </div>`;
+  }
+
   function renderComplete() {
     const surveyBtnHtml = state.isSurveyDone
       ? `<button class="btn" type="button" disabled>설문 참여 완료</button>`
@@ -489,15 +512,18 @@ function stampRow(id) {
       <div class="gift-banner"><strong>당신이 모은 네 가지가 바로 DIMA의 GIFT입니다.</strong></div>
       <p class="lead" style="margin-top:14px">한 해의 배움과 도전이 기적 같은 결실이 되는 순간,</p>
       <div class="miracle">Miracle DIMA</div>
-      ${state.isSurveyDone ? "" : `
-        <div class="prize-banner">
-          <span class="prize-label">🎁 추첨 혜택</span>
-          <strong>추첨하여 <em>10만원 상품권</em> 혜택</strong>
-        </div>`}
+      ${state.isSurveyDone ? revisitNoticeHtml() : `
+      <div class="prize-banner">
+        <span class="prize-label">🎁 참여 혜택</span>
+        <ul class="prize-list">
+          <li><span class="prize-tag">전원</span><strong><em>편의점 상품권</em> 지급</strong></li>
+          <li><span class="prize-tag">추첨</span><strong><em>10만원 상품권</em> 증정</strong></li>
+        </ul>
+      </div>`}
       <div class="button-stack">
         ${surveyBtnHtml}
       </div>
-      <p class="note">만족도 조사 완료 후 모바일 편의점 상품권 지급 및 수업협조문 신청이 가능합니다.</p>
+      <p class="note">만족도 조사까지 완료해야 상품권 지급 및 수업협조문 수령이 가능합니다.</p>
     </section>`;
   }
 
@@ -586,7 +612,7 @@ function stampRow(id) {
       <span class="eyebrow">PARTICIPANT INFO</span>
       <h1 class="title" id="participant-title">참여자 정보 입력</h1>
       ${progressHtml(3)}
-      <p class="lead">참여자 정보를 입력해 주세요.<br />모바일 상품권 지급, 중복 참여 확인 및 수업협조문 발급을 위해 사용됩니다.</p>
+      <p class="lead">참여자 정보를 입력해 주세요.<br />모바일 편의점 상품권 지급, 중복 참여 확인 및 수업협조문 발급을 위해 사용됩니다.</p>
       <form class="stack" id="participant-form" style="margin-top:14px" novalidate>
         ${field("name", "성명", "이름을 입력해 주세요.", "text", "name")}
         ${field("studentId", "학번", "학번을 입력해 주세요.", "text", "off", "numeric")}
@@ -594,8 +620,8 @@ function stampRow(id) {
         ${field("phone", "휴대전화번호", "010-0000-0000", "tel", "tel", "tel")}
         <p class="note" style="text-align:left;margin-top:-2px">※ 모두 필수입력</p>
         <div class="info-grid">
-          <article class="glass-card info-card"><span class="info-icon inline-icon">${icon("phone")}</span><h3>휴대전화번호 안내</h3><p>모바일 상품권을 받을 수 있는 정확한 휴대전화번호를 입력해 주세요.</p></article>
-          <article class="glass-card info-card"><span class="info-icon inline-icon">${icon("document")}</span><h3>중복 지급 기준</h3><p>모바일 상품권은 1인 1회 지급됩니다.</p></article>
+          <article class="glass-card info-card"><span class="info-icon inline-icon">${icon("phone")}</span><h3>휴대전화번호 안내</h3><p>모바일 편의점 상품권을 받을 수 있는 정확한 휴대전화번호를 입력해 주세요.</p></article>
+          <article class="glass-card info-card"><span class="info-icon inline-icon">${icon("document")}</span><h3>중복 지급 기준</h3><p>모바일 편의점 상품권은 1인 1회 지급됩니다.</p></article>
         </div>
         <p class="error" id="participant-error" hidden></p>
         <button class="btn btn-gift" type="submit">다음 ${icon("arrow")}</button>
@@ -619,10 +645,10 @@ function stampRow(id) {
         <div class="glass-card consent-panel">
           <h2><strong>[필수]</strong> 개인정보 수집·이용 동의</h2>
           <p>동아방송예술대학교는 GIFT Festa 2026 운영을 위해 다음과 같이 개인정보를 수집·이용합니다.</p>
-          ${consentItem("target", "수집·이용 목적", "GIFT 스탬프투어 참여 확인, 모바일 상품권 지급, 중복 지급 방지 및 수업협조문 발급")}
+          ${consentItem("target", "수집·이용 목적", "GIFT 스탬프투어 참여 확인, 모바일 편의점 상품권 지급, 중복 지급 방지 및 수업협조문 발급")}
           ${consentItem("document", "수집 항목", "성명, 학번, 학과(전공), 휴대전화번호")}
           ${consentItem("clock", "보유·이용기간", "상품권 지급 및 수업협조문 관련 행정처리 완료 후 파기")}
-          <p>개인정보 수집·이용에 대한 동의를 거부할 권리가 있으나, 동의하지 않을 경우 모바일 상품권 지급 및 수업협조문 발급이 제한될 수 있습니다.</p>
+          <p>개인정보 수집·이용에 대한 동의를 거부할 권리가 있으나, 동의하지 않을 경우 모바일 편의점 상품권 지급 및 수업협조문 발급이 제한될 수 있습니다.</p>
         </div>
         <label class="consent-check ${state.consent ? "checked" : ""}">
           <input id="consent" name="consent" type="checkbox" ${state.consent ? "checked" : ""} />
@@ -642,6 +668,7 @@ function stampRow(id) {
       <span class="eyebrow" style="margin-bottom: 16px; display: inline-flex; align-items: center; justify-content: center; line-height: 1; padding-top: 2px;">COMPLETE</span>
       
       <h1 class="title" id="done-title" style="margin-bottom: 20px;">참여가 완료되었습니다.</h1>
+      ${revisitNoticeHtml()}
       <p class="lead" style="margin-bottom: 40px;">GIFT Festa 2026에 참여해 주셔서 감사합니다.</p>
       
       <div class="miracle" style="margin-top: 50px; margin-bottom: 50px; font-size: 32px;">Miracle DIMA</div>
@@ -738,6 +765,7 @@ function stampRow(id) {
     if (!VALID_SCREENS.includes(screen)) screen = "start";
     state.screen = screen;
     state.selectedAnswer = undefined;
+    if (screen === "quiz") state.quizChoices = null;
     const url = `#${screen}${screen === "quiz" ? `-${state.zone}` : ""}`;
     if (replace) history.replaceState({ screen, zone: state.zone }, "", url);
     else history.pushState({ screen, zone: state.zone }, "", url);
@@ -843,8 +871,8 @@ function stampRow(id) {
       ${statusText}
       <p style="margin-top:10px">GIFT 스탬프투어와 만족도 조사를 모두 완료했습니다.</p>
       <div class="benefit-list">
-        <article class="benefit-card"><span class="inline-icon">${icon("gift")}</span><div><h3>모바일 상품권</h3><p>입력한 휴대전화번호로 지급될 예정입니다.</p></div></article>
-        <article class="benefit-card"><span class="inline-icon">${icon("document")}</span><div><h3>수업협조문</h3><p>스탬프투어를 완료한 재학생은 각 학과사무실로 수업협조문이 발급됩니다.</p></div></article>
+        <article class="benefit-card"><span class="inline-icon">${icon("gift")}</span><div><h3>모바일 편의점 상품권</h3><p>입력한 휴대전화번호로 지급될 예정입니다.</p></div></article>
+        <article class="benefit-card"><span class="inline-icon">${icon("document")}</span><div><h3>수업협조문</h3><p>스탬프투어를 완료한 학생은 10월 14일 이후 학과 사무실에서 협조문을 수령할 수 있습니다.</p></div></article>
       </div>
       <div class="modal-divider"></div>
       <p style="color:#fff">참여해 주셔서 감사합니다.</p>
@@ -1022,13 +1050,22 @@ function stampRow(id) {
     element.hidden = false;
     element.scrollIntoView({ behavior: "smooth", block: "center" });
   }
+  
+  function hideError(id) {
+    const element = document.querySelector(id);
+    if (!element) return;
+    element.textContent = "";
+    element.hidden = true;
+  }
 
   function handleSurvey1(form) {
     const data = new FormData(form);
-    if (!data.get("q1") || !data.get("q2")) {
-      showError("#survey1-error", "Q1과 Q2에 모두 응답해 주세요.");
+    const missing = ["q1", "q2"].filter((k) => !data.get(k)).map((k) => k.toUpperCase());
+    if (missing.length) {
+      showError("#survey1-error", `${missing.join(", ")}에 응답해 주세요.`);
       return;
     }
+    hideError("#survey1-error");
     state.survey.q1 = Number(data.get("q1"));
     state.survey.q2 = Number(data.get("q2"));
     navigate("survey2");
@@ -1037,14 +1074,16 @@ function stampRow(id) {
   function handleSurvey2(form) {
     const data = new FormData(form);
     const q4 = String(data.get("q4") || "").trim();
-    if (!data.get("q3") || !data.get("q5")) {
-      showError("#survey2-error", "Q3과 Q5에 모두 응답해 주세요.");
+    const missing = ["q3", "q5"].filter((k) => !data.get(k)).map((k) => k.toUpperCase());
+    if (missing.length) {
+      showError("#survey2-error", `${missing.join(", ")}에 응답해 주세요.`);
       return;
     }
     if (q4.length > 100) {
       showError("#survey2-error", "Q4는 100자 이내로 작성해 주세요.");
       return;
     }
+    hideError("#survey2-error");
     state.survey.q3 = Number(data.get("q3"));
     state.survey.q4 = q4;
     state.survey.q5 = Number(data.get("q5"));
@@ -1098,6 +1137,7 @@ function handleParticipant(form) {
   }
 
   async function checkGPSAndEnterZone(id) {
+    
     if (!ZONES[id]) return;
 
     // 이미 획득한 곳이면 그냥 퀴즈 화면 열기(복습용)
@@ -1113,6 +1153,8 @@ function handleParticipant(form) {
       return;
     }
 
+      fetch(`assets/egg-${id}-hatch.glb`).catch(() => {});
+      
       showToast("위치를 확인 중입니다... (테스트 모드)");
 
     // ==========================================
@@ -1223,6 +1265,8 @@ function handleParticipant(form) {
         ?.querySelectorAll(".survey-option")
         .forEach((option) => option.classList.remove("selected"));
       target.closest(".survey-option")?.classList.add("selected");
+      hideError("#survey1-error");   
+      hideError("#survey2-error");
     }
     if (target.matches("#consent")) {
       state.consent = target.checked;
@@ -1281,7 +1325,8 @@ async function submitFinalData() {
   const payload = {
     survey: state.survey,
     participant: state.participant,
-    idempotencyKey: state.idempotencyKey
+    idempotencyKey: state.idempotencyKey,
+    eventDay: state.eventDay || kstToday(),
   };
 
   try {
@@ -1456,6 +1501,8 @@ async function submitFinalData() {
             if (s.dima_id === 4) return "T";
           });
         state.stamps = dbStamps;
+
+        state.eventDay = data.eventDay || kstToday();
         
         if (data.isSurveyDone) {
           state.isSurveyDone = true; 
@@ -1503,6 +1550,10 @@ window.addEventListener('online', flushOfflineQueue);
 // 2. 폰 화면을 껐다 켜거나 다른 앱에서 돌아왔을 때 트리거 (가장 중요!)
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible") {
+    if (state.eventDay && state.eventDay !== kstToday()) {
+      location.reload();
+      return;
+    }
     flushOfflineQueue();
   }
 });

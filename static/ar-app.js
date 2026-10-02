@@ -1,8 +1,9 @@
 const IMAGE_TIMEOUT_MS = 25000;
-const INTRO_CLIP = "01_Hatch_Once";   // GLB 클립 이름 (대소문자 달라도 자동 보정)
+const INTRO_CLIP = "01_Hatch_Once";   
 const LOOP_CLIP = "02_Loop";
-const INTRO_FALLBACK_MS = 8000;       // 클립 길이를 못 읽었을 때만 쓰는 안전장치
-const LOST_GRACE_MS = 800;            // 손떨림으로 잠깐 놓친 건 무시하는 유예 시간
+const INTRO_FALLBACK_MS = 8000;       
+const LOST_GRACE_MS = 800;            
+const HATCH_PACE = { skipTo: 0.9, fastUntil: 6.4, speed: 2.9 };
 
 const ALL_TARGETS = ["G-target", "I-target", "F-target", "T-target"];
 
@@ -16,6 +17,7 @@ const state = {
   animFallbackTimer: null,
   animFinishedHandler: null,
   lostTimer: null,
+  paceRafId: null,
 };
 
 const $ = (sel) => document.querySelector(sel);
@@ -140,6 +142,28 @@ function resolveClipName(entity, wanted) {
   return clip ? clip.name : wanted;
 }
 
+function startHatchPacing(entity) {
+  cancelAnimationFrame(state.paceRafId);
+  let started = false;
+  const loop = () => {
+    if (!state.imageFound) return;
+    const action = entity.components["animation-mixer"]?.activeActions?.[0];
+    if (action) {
+      if (!started) {
+        if (action.time < HATCH_PACE.skipTo) action.time = HATCH_PACE.skipTo;
+        action.timeScale = HATCH_PACE.speed;
+        started = true;
+      }
+      if (action.time >= HATCH_PACE.fastUntil) {
+        action.timeScale = 1; // 깨지는 순간부터 원래 속도
+        return;
+      }
+    }
+    state.paceRafId = requestAnimationFrame(loop);
+  };
+  state.paceRafId = requestAnimationFrame(loop);
+}
+
 function playIntroThenLoop(entity) {
   let done = false;
 
@@ -158,7 +182,6 @@ function playIntroThenLoop(entity) {
     setArButton("quiz");
   };
 
-  // 인트로 단계에서 오는 finished 이벤트는 곧 인트로 종료
   const onFinished = () => startLoop();
   state.animFinishedHandler = onFinished;
   entity.addEventListener("animation-finished", onFinished);
@@ -169,14 +192,19 @@ function playIntroThenLoop(entity) {
     loop: "once",
     clampWhenFinished: true,
   });
+  startHatchPacing(entity); // ← 재생 조절 (앞부분 건너뛰기 + 깨지기 전까지 빠르게)
 
-  // 이벤트가 안 오는 경우 대비: 클립 길이 + 0.5초 뒤 강제로 루프 전환
+  // 이벤트가 안 오는 경우 대비: 빨라진 재생 길이 + 0.5초 뒤 강제로 루프 전환
   const introClip = findClip(entity, INTRO_CLIP);
-  const fallbackMs = introClip ? introClip.duration * 1000 + 500 : INTRO_FALLBACK_MS;
+  const fallbackMs = introClip
+    ? ((HATCH_PACE.fastUntil - HATCH_PACE.skipTo) / HATCH_PACE.speed +
+        (introClip.duration - HATCH_PACE.fastUntil)) * 1000 + 500
+    : INTRO_FALLBACK_MS;
   state.animFallbackTimer = setTimeout(startLoop, fallbackMs);
 }
 
 function stopModel() {
+  cancelAnimationFrame(state.paceRafId);
   clearTimeout(state.animFallbackTimer);
   const entity = $("#treasure-entity");
   if (entity) {
@@ -224,22 +252,28 @@ async function enterImageScreen() {
   state.currentSceneEl = sceneEl;
 
   let isReadyToScan = false;
-  setTimeout(() => { isReadyToScan = true; }, 1500);
+  let pendingFound = null;
+  setTimeout(() => {
+    isReadyToScan = true;
+    if (pendingFound) { const n = pendingFound; pendingFound = null; onFound({ detail: { name: n } }); }
+  }, 500);
 
   const onFound = (e) => {
     const name = e.detail && e.detail.name;
-    if (!isReadyToScan || !ALL_TARGETS.includes(name)) return;
-    if (name === state.currentTargetName) clearTimeout(state.lostTimer); // 유예 시간 안에 다시 찾음
+    if (!ALL_TARGETS.includes(name)) return;
+    if (!isReadyToScan) { pendingFound = name; return; }
+    if (name === state.currentTargetName) clearTimeout(state.lostTimer);
     onImageFound(name);
   };
 
   const onLost = (e) => {
     const name = e.detail && e.detail.name;
+    if (name === pendingFound) pendingFound = null;
     if (name !== state.currentTargetName || !state.imageFound) return;
     clearTimeout(state.lostTimer);
     state.lostTimer = setTimeout(resetToScanning, LOST_GRACE_MS);
   };
-
+  
   sceneEl.addEventListener("xrimagefound", onFound);
   sceneEl.addEventListener("xrimagelost", onLost);
 
