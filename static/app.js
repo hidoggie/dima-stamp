@@ -419,7 +419,7 @@
   function renderQuiz() {
     const zone = ZONES[state.zone];
     const step = ORDER.indexOf(zone.id) + 1;
-    return `<section class="screen" aria-labelledby="quiz-title" style="${zoneStyle(zone)}">
+    return `<section class="screen quiz-screen" aria-labelledby="quiz-title" style="${zoneStyle(zone)}">
       <span class="eyebrow zone">${zone.id} ZONE</span>
       <h1 class="title" id="quiz-title">퀴즈 미션</h1>
       <p class="lead">학습성과를 확인하고 정답을 선택하세요.</p>

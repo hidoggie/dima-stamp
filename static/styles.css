@@ -1729,3 +1729,66 @@ html, body {
   line-height: 1.6;
   word-break: keep-all;
 }
+
+/* ===== 퀴즈 화면: 기기 높이에 맞춰 한 화면에 배치 ===== */
+.quiz-screen {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.quiz-screen > .eyebrow {
+  align-self: flex-start;
+}
+
+.quiz-screen #quiz-form {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 남는 세로 공간을 선택지 영역이 차지하고, 선택지는 그 가운데에 배치 */
+.quiz-screen .option-list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: clamp(10px, 2dvh, 18px);
+  margin-top: clamp(8px, 2dvh, 20px);
+}
+
+.quiz-screen .option {
+  min-height: clamp(62px, 12.5dvh, 120px);
+  grid-template-columns: 38px 1fr;
+  gap: 12px;
+  padding: 10px 16px;
+  border-radius: 16px;
+  font-size: clamp(16px, 4.6vw, 20px);
+  font-weight: 700;
+}
+
+.quiz-screen .option-index {
+  width: 32px;
+  height: 32px;
+  font-size: 15px;
+}
+
+/* 버튼은 항상 화면 하단(엄지 위치) */
+.quiz-screen .button-stack {
+  margin-top: 0 !important;
+  padding-top: clamp(10px, 2.5dvh, 24px);
+}
+
+.quiz-screen #quiz-submit {
+  min-height: clamp(54px, 8.5dvh, 70px) !important;
+  border-radius: 16px;
+  font-size: clamp(16px, 4.6vw, 19px);
+}
+
+/* 아이폰 SE 등 세로가 짧은 화면: 위쪽 요소를 살짝 압축 */
+@media (max-height: 600px) {
+  .quiz-screen .title { font-size: 27px; margin: 2px 0; }
+  .quiz-screen .progress { margin: 8px 0; }
+  .quiz-screen .question-card { padding: 14px 14px; }
+  .quiz-screen .question-card h2 { font-size: 15px; }
+}
