@@ -82,25 +82,42 @@ async function initDB() {
                 acquired_lat NUMERIC(10,7),
                 acquired_lng NUMERIC(10,7),
                 acquired_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(user_id, dima_id)
+                event_day DATE NOT NULL DEFAULT ((now() AT TIME ZONE 'Asia/Seoul')::date)
             )
         `);
 
       await pool.query(`
         CREATE TABLE IF NOT EXISTS dima_surveys (
           id SERIAL PRIMARY KEY,
-          user_id INTEGER REFERENCES dima_users(id) UNIQUE,
-          idempotency_key VARCHAR(100),  
-          is_deleted BOOLEAN DEFAULT FALSE,     
+          user_id INTEGER REFERENCES dima_users(id),
+          idempotency_key VARCHAR(100),
+          is_deleted BOOLEAN DEFAULT FALSE,
           deleted_at TIMESTAMP,
           q1 INT, q2 INT, q3 INT, q4 TEXT, q5 INT,
           name VARCHAR(50),
           student_id VARCHAR(50),
           department VARCHAR(100),
           phone VARCHAR(20),
-          created_at TIMESTAMP DEFAULT (now() AT TIME ZONE 'Asia/Seoul')
+          created_at TIMESTAMP DEFAULT (now() AT TIME ZONE 'Asia/Seoul'),
+          event_day DATE NOT NULL DEFAULT ((now() AT TIME ZONE 'Asia/Seoul')::date)
         );
-      `);  
+      `);
+
+    // ★ [일자별 참여] 기존 DB 마이그레이션: '사용자 1회' → '사용자 + 날짜당 1회'
+    //    (이미 적용된 DB에서 다시 실행돼도 안전하도록 IF EXISTS / IF NOT EXISTS 사용)
+    await pool.query(`ALTER TABLE dima_stamps ADD COLUMN IF NOT EXISTS event_day DATE`);
+    await pool.query(`UPDATE dima_stamps SET event_day = COALESCE(acquired_at, now())::date WHERE event_day IS NULL`);
+    await pool.query(`ALTER TABLE dima_stamps ALTER COLUMN event_day SET DEFAULT ((now() AT TIME ZONE 'Asia/Seoul')::date)`);
+    await pool.query(`ALTER TABLE dima_stamps ALTER COLUMN event_day SET NOT NULL`);
+    await pool.query(`ALTER TABLE dima_stamps DROP CONSTRAINT IF EXISTS dima_stamps_user_id_dima_id_key`);
+    await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS dima_stamps_user_dima_day_uq ON dima_stamps (user_id, dima_id, event_day)`);
+
+    await pool.query(`ALTER TABLE dima_surveys ADD COLUMN IF NOT EXISTS event_day DATE`);
+    await pool.query(`UPDATE dima_surveys SET event_day = COALESCE(created_at, now())::date WHERE event_day IS NULL`);
+    await pool.query(`ALTER TABLE dima_surveys ALTER COLUMN event_day SET DEFAULT ((now() AT TIME ZONE 'Asia/Seoul')::date)`);
+    await pool.query(`ALTER TABLE dima_surveys ALTER COLUMN event_day SET NOT NULL`);
+    await pool.query(`ALTER TABLE dima_surveys DROP CONSTRAINT IF EXISTS dima_surveys_user_id_key`);
+    await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS dima_surveys_user_day_uq ON dima_surveys (user_id, event_day)`);
 
     // 메인 이벤트 생성
     const eventCheck = await pool.query(
@@ -164,6 +181,21 @@ function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
 }
 function deg2rad(deg) {
   return deg * (Math.PI / 180);
+}
+
+// ★ [일자별 참여] 한국 시간 기준 오늘 날짜 (YYYY-MM-DD)
+function kstToday() {
+  return new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
+}
+
+// 클라이언트가 보낸 참여일 검증: 오늘 또는 어제만 허용 (오프라인 큐가 자정을 넘겨 전송되는 경우 대비)
+function resolveEventDay(day) {
+  const today = kstToday();
+  if (typeof day === "string" && /^\d{4}-\d{2}-\d{2}$/.test(day)) {
+    const yesterday = new Date(Date.parse(today) - 86400000).toISOString().slice(0, 10);
+    if (day === today || day === yesterday) return day;
+  }
+  return today;
 }
 
 // 2. 사용자 인증 미들웨어 (브라우저 쿠키의 device_id 확인)
@@ -318,16 +350,16 @@ app.post("/api/tour/arrive", authenticate, async (req, res) => {
     // ★ 수정: 이미 GAME_CLEARED나 PHOTO_SUBMITTED 상태라면 status를 덮어쓰지 않고 유지합니다.
     const stampRes = await pool.query(
       `
-            INSERT INTO dima_stamps (user_id, dima_id, status, acquired_lat, acquired_lng, acquired_at) 
-            VALUES ($1, $2, 'NAVI_CLEARED', $3, $4, (now() AT TIME ZONE 'Asia/Seoul'))
-            ON CONFLICT (user_id, dima_id) 
+            INSERT INTO dima_stamps (user_id, dima_id, status, acquired_lat, acquired_lng, acquired_at, event_day)
+            VALUES ($1, $2, 'NAVI_CLEARED', $3, $4, (now() AT TIME ZONE 'Asia/Seoul'), $5)
+            ON CONFLICT (user_id, dima_id, event_day)
             DO UPDATE SET acquired_at = CASE 
                 WHEN dima_stamps.status = 'PHOTO_SUBMITTED' THEN dima_stamps.acquired_at 
                 ELSE (now() AT TIME ZONE 'Asia/Seoul') 
             END
             RETURNING status
         `,
-      [user_id, dima_id, lat, lng],
+      [user_id, dima_id, lat, lng, kstToday()],
     );
 
     const current_status = stampRes.rows[0].status; // 현재 유저의 상태 가져오기
@@ -356,10 +388,10 @@ app.post("/api/tour/game_clear", authenticate, async (req, res) => {
       `
             UPDATE dima_stamps 
             SET status = 'GAME_CLEARED' 
-            WHERE user_id = $1 AND dima_id = $2 AND status IN ('ARRIVED', 'NAVI_CLEARED')
+            WHERE user_id = $1 AND dima_id = $2 AND event_day = $3 AND status IN ('ARRIVED', 'NAVI_CLEARED')
             RETURNING id
         `,
-      [user_id, dima_id],
+      [user_id, dima_id, kstToday()],
     );
 
     if (updateRes.rowCount === 0) {
@@ -389,10 +421,10 @@ app.post("/api/tour/navi_clear", authenticate, async (req, res) => {
       `
             UPDATE dima_stamps 
             SET status = 'NAVI_CLEARED' 
-            WHERE user_id = $1 AND dima_id = $2 AND status = 'ARRIVED'
+            WHERE user_id = $1 AND dima_id = $2 AND event_day = $3 AND status = 'ARRIVED'
             RETURNING id
         `,
-      [user_id, dima_id],
+      [user_id, dima_id, kstToday()],
     );
 
     if (updateRes.rowCount === 0) {
@@ -427,14 +459,14 @@ app.post("/api/tour/photo_upload", authenticate, async (req, res) => {
 
     const updateRes = await pool.query(
       `
-        INSERT INTO dima_stamps (user_id, dima_id, status, acquired_at) 
-        VALUES ($1, $2, 'PHOTO_SUBMITTED', (now() AT TIME ZONE 'Asia/Seoul'))
-        ON CONFLICT (user_id, dima_id) 
+        INSERT INTO dima_stamps (user_id, dima_id, status, acquired_at, event_day)
+        VALUES ($1, $2, 'PHOTO_SUBMITTED', (now() AT TIME ZONE 'Asia/Seoul'), $3)
+        ON CONFLICT (user_id, dima_id, event_day)
         DO UPDATE SET status = 'PHOTO_SUBMITTED', acquired_at = (now() AT TIME ZONE 'Asia/Seoul')
         WHERE dima_stamps.status != 'PHOTO_SUBMITTED'
         RETURNING id
       `,
-      [user_id, dima_id],
+      [user_id, dima_id, kstToday()],
     );
 
     // 여전히 업데이트된 행이 없다면 (이미 제출 완료된 상태인 경우)
@@ -460,20 +492,22 @@ app.post("/api/tour/photo_upload", authenticate, async (req, res) => {
 app.get("/api/tour/my_stamps", authenticate, async (req, res) => {
   try {
     const { id: user_id } = req.user;
+    const today = kstToday(); // ★ 오늘 참여분만 조회
     const stampRes = await pool.query(
       `
             SELECT dima_id, status, acquired_at
-            FROM dima_stamps 
-            WHERE user_id = $1
+            FROM dima_stamps
+            WHERE user_id = $1 AND event_day = $2
         `,
-      [user_id],
+      [user_id, today],
     );
     const surveyRes = await pool.query(
-      `SELECT id FROM dima_surveys WHERE user_id = $1`, [user_id]
+      `SELECT id FROM dima_surveys WHERE user_id = $1 AND event_day = $2`, [user_id, today]
     );
     const isSurveyDone = surveyRes.rowCount > 0;
 
-    res.json({ success: true, stamps: stampRes.rows, isSurveyDone });
+    // eventDay: 프론트가 오프라인 큐/임시저장 데이터의 날짜를 맞추는 데 사용
+    res.json({ success: true, stamps: stampRes.rows, isSurveyDone, eventDay: today });
   } catch (err) {
     console.error(err);
     res
@@ -491,29 +525,34 @@ app.post("/api/tour/submit_survey", authenticate, async (req, res) => {
 
     try {
         const { id: user_id } = req.user;
+        const eventDay = resolveEventDay(req.body.eventDay); // ★ 참여일 (오늘, 또는 자정 넘겨 전송된 어제분)
 
-        const checkRes = await pool.query("SELECT idempotency_key FROM dima_surveys WHERE user_id = $1", [user_id]);
-        
+        const checkRes = await pool.query(
+          "SELECT idempotency_key FROM dima_surveys WHERE user_id = $1 AND event_day = $2",
+          [user_id, eventDay]
+        );
+
         if (checkRes.rowCount > 0) {
             // 오프라인 큐가 재시도한 동일한 요청이면 성공(200) 처리하여 큐를 비우게 함
             if (checkRes.rows[0].idempotency_key === idempotencyKey) {
                 return res.json({ success: true, message: "이미 저장되었습니다." });
             } else {
                 // 캐시를 지우고 아예 새로 제출한 경우 -> 명시적 거부 플래그 반환
-                return res.json({ success: false, already_submitted: true, error: "이미 설문을 완료하셨습니다." });
+                return res.json({ success: false, already_submitted: true, error: "오늘은 이미 설문을 완료하셨습니다." });
             }
         }
-        
+
         await pool.query(
-          `INSERT INTO dima_surveys 
-            (user_id, idempotency_key, q1, q2, q3, q4, q5, name, student_id, department, phone) 
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-            ON CONFLICT (user_id) 
-            DO NOTHING`, 
+          `INSERT INTO dima_surveys
+            (user_id, idempotency_key, q1, q2, q3, q4, q5, name, student_id, department, phone, event_day)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            ON CONFLICT (user_id, event_day)
+            DO NOTHING`,
             [
               req.user.id, idempotencyKey,
               survey.q1, survey.q2, survey.q3, survey.q4, survey.q5,
-              participant.name, participant.studentId, participant.department, participant.phone
+              participant.name, participant.studentId, participant.department, participant.phone,
+              eventDay
             ]
         );
 
@@ -727,6 +766,8 @@ app.post(
 // 관리자용 수동 완주 및 설문 등록 API[cite: 3]
 app.post("/api/admin/manual_insert", authenticateAdmin, verifyStatAccess, async (req, res) => {
   const { passport_id, name, student_id, idempotency_key } = req.body;
+  // ★ 참여일: 관리자가 'YYYY-MM-DD'로 지정 가능 (예: 8일에 7일분 등록), 없으면 오늘
+  const eventDay = /^\d{4}-\d{2}-\d{2}$/.test(req.body.event_day || "") ? req.body.event_day : kstToday();
 
   try {
     // 1. 해당 유저 정보 찾기
@@ -738,22 +779,23 @@ app.post("/api/admin/manual_insert", authenticateAdmin, verifyStatAccess, async 
     const zones = [1, 2, 3, 4];
     for (let dima_id of zones) {
       await pool.query(`
-        INSERT INTO dima_stamps (user_id, dima_id, status, acquired_at) 
-        VALUES ($1, $2, 'PHOTO_SUBMITTED', CURRENT_TIMESTAMP)
-        ON CONFLICT (user_id, dima_id) 
+        INSERT INTO dima_stamps (user_id, dima_id, status, acquired_at, event_day)
+        VALUES ($1, $2, 'PHOTO_SUBMITTED', (now() AT TIME ZONE 'Asia/Seoul'), $3)
+        ON CONFLICT (user_id, dima_id, event_day)
         DO UPDATE SET status = 'PHOTO_SUBMITTED'
-      `, [user_id, dima_id]);
+      `, [user_id, dima_id, eventDay]);
     }
 
-    // 3. 설문 데이터 수동 삽입
+    // 3. 설문 데이터 수동 삽입 (해당 참여일 기준 1건)
     await pool.query(`
-      INSERT INTO dima_surveys (user_id, idempotency_key, name, student_id) 
-      VALUES ($1, $2, $3, $4)
-      ON CONFLICT (user_id) DO NOTHING
-    `, [user_id, idempotency_key, name, student_id]);
+      INSERT INTO dima_surveys (user_id, idempotency_key, name, student_id, event_day)
+      VALUES ($1, $2, $3, $4, $5)
+      ON CONFLICT (user_id, event_day) DO NOTHING
+    `, [user_id, idempotency_key, name, student_id, eventDay]);
 
     res.json({ success: true, message: "관리자 권한으로 수동 등록이 완료되었습니다." });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "수동 등록 처리 중 오류 발생" });
   }
 });
@@ -761,7 +803,8 @@ app.post("/api/admin/manual_insert", authenticateAdmin, verifyStatAccess, async 
 app.get("/api/admin/surveys", authenticateAdmin, verifyStatAccess, async (req, res) => {
     try {
         const surveyRes = await pool.query(`
-            SELECT id, user_id, idempotency_key, q1, q2, q3, q4, q5, name, student_id, department, phone, created_at 
+            SELECT id, user_id, idempotency_key, q1, q2, q3, q4, q5, name, student_id, department, phone, created_at,
+                   TO_CHAR(event_day, 'YYYY-MM-DD') AS event_day
             FROM dima_surveys 
             WHERE is_deleted = FALSE
             ORDER BY created_at DESC
@@ -787,12 +830,12 @@ app.get("/api/admin/dashboard-stats", authenticateAdmin, verifyStatAccess, async
         const startParam = start_date ? `${start_date} 00:00:00+09` : EVENT_START_DATE;
         const endParam = end_date ? `${end_date} 23:59:59+09` : '2099-12-31 23:59:59+09';
 
-        // 기간 내 4개 스탬프 완주자 수 (4개 존 모두 완료)
+        // 기간 내 4개 스탬프 완주 건수 (★ 사용자+참여일 단위: 7일·8일 모두 완주하면 2건)
         const completedUsers = await pool.query(`
             SELECT COUNT(*) as cnt FROM (
-                SELECT user_id FROM dima_stamps 
-                WHERE status = 'PHOTO_SUBMITTED' AND acquired_at >= $1 AND acquired_at <= $2 
-                GROUP BY user_id HAVING COUNT(*) >= 4
+                SELECT user_id, event_day FROM dima_stamps
+                WHERE status = 'PHOTO_SUBMITTED' AND acquired_at >= $1 AND acquired_at <= $2
+                GROUP BY user_id, event_day HAVING COUNT(DISTINCT dima_id) >= 4
             ) as t
         `, [startParam, endParam]);
         
@@ -860,7 +903,7 @@ app.get("/api/admin/hourly-stats", authenticateAdmin, verifyStatAccess, async (r
                 SELECT DATE_TRUNC('hour', MAX(acquired_at)) as hr
                 FROM dima_stamps 
                 WHERE status = 'PHOTO_SUBMITTED'
-                GROUP BY user_id HAVING COUNT(*) >= 4
+                GROUP BY user_id, event_day HAVING COUNT(DISTINCT dima_id) >= 4
             ),
             surveyers AS (
                 SELECT DATE_TRUNC('hour', created_at) as hr
@@ -906,7 +949,7 @@ app.get(
       const { passport_id } = req.params;
       const stampRes = await pool.query(
         `
-            SELECT l.name, s.acquired_at
+            SELECT l.name, s.acquired_at, TO_CHAR(s.event_day, 'YYYY-MM-DD') AS event_day
             FROM dima_stamps s
             JOIN dima_users u ON s.user_id = u.id
             JOIN dima_stampspot l ON s.dima_id = l.id
