@@ -512,13 +512,21 @@ function stampRow(id) {
       <div class="gift-banner"><strong>당신이 모은 네 가지가 바로 DIMA의 GIFT입니다.</strong></div>
       <p class="lead" style="margin-top:14px">한 해의 배움과 도전이 기적 같은 결실이 되는 순간,</p>
       <div class="miracle">Miracle DIMA</div>
-      ${state.isSurveyDone ? revisitNoticeHtml() : `
+       ${state.isSurveyDone ? revisitNoticeHtml() : `
       <div class="prize-banner">
         <span class="prize-label">🎁 참여 혜택</span>
-        <ul class="prize-list">
-          <li><span class="prize-tag">전원</span><strong><em>편의점 상품권</em> 지급</strong></li>
-          <li><span class="prize-tag">추첨</span><strong><em>10만원 상품권</em> 증정</strong></li>
-        </ul>
+        <div class="prize-grid">
+          <div class="prize-item basic">
+            <span class="prize-tag">참여자 전원</span>
+            <span class="prize-name">편의점 상품권</span>
+            <span class="prize-sub">설문 완료 시 지급</span>
+          </div>
+          <div class="prize-item lucky">
+            <span class="prize-tag">추첨</span>
+            <span class="prize-amount">10만원</span>
+            <span class="prize-name">상품권 증정</span>
+          </div>
+        </div>
       </div>`}
       <div class="button-stack">
         ${surveyBtnHtml}
@@ -1154,7 +1162,7 @@ function handleParticipant(form) {
     }
 
       fetch(`assets/egg-${id}-hatch.glb`).catch(() => {});
-      
+
       showToast("위치를 확인 중입니다... (테스트 모드)");
 
     // ==========================================

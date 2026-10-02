@@ -1586,70 +1586,99 @@ html, body {
   pointer-events: auto !important;
 }
 
-/* 완주 화면: 추첨 혜택 배너 */
+/* 완주 화면: 참여 혜택 배너 */
 .prize-banner {
   margin-top: 18px;
-  padding: 14px 16px;
+  padding: 14px 12px 12px;
   text-align: center;
-  background: linear-gradient(115deg, rgba(255, 140, 36, 0.22), rgba(240, 0, 149, 0.22));
+  background: linear-gradient(115deg, rgba(255, 140, 36, 0.16), rgba(240, 0, 149, 0.16));
   border: 2px solid #ffb347;
-  border-radius: 14px;
-  box-shadow: 0 0 22px rgba(255, 140, 36, 0.35);
-  animation: prize-glow 1.8s ease-in-out infinite;
+  border-radius: 16px;
+  box-shadow: 0 0 22px rgba(255, 140, 36, 0.3);
 }
 
 .prize-banner .prize-label {
   display: inline-block;
-  margin-bottom: 6px;
-  padding: 3px 10px;
+  margin-bottom: 10px;
+  padding: 3px 12px;
   color: #1a1020;
   background: #ffb347;
   border-radius: 999px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 950;
 }
 
-.prize-banner strong {
-  display: block;
-  color: #fff;
-  font-size: 18px;
-  font-weight: 950;
-  line-height: 1.4;
+.prize-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.15fr;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.prize-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 12px 6px;
+  border-radius: 12px;
   word-break: keep-all;
 }
 
-.prize-banner em {
-  color: #ffd166;
-  font-style: normal;
-}
-
-.prize-banner .prize-list {
-  display: grid;
-  gap: 8px;
-  margin: 4px 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.prize-banner .prize-list li {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-
-.prize-banner .prize-tag {
-  flex-shrink: 0;
-  padding: 2px 8px;
-  color: #ffd166;
-  border: 1px solid #ffd166;
-  border-radius: 6px;
-  font-size: 12px;
+.prize-item .prize-tag {
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
   font-weight: 900;
 }
 
-.prize-banner .prize-list strong {
-  font-size: 17px;
+.prize-item .prize-name {
+  color: #fff;
+  font-size: 15px;
+  font-weight: 850;
+  line-height: 1.3;
+}
+
+.prize-item .prize-sub {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* 전원: 차분한 기본 혜택 */
+.prize-item.basic {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.prize-item.basic .prize-tag {
+  color: #d8d4e6;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+/* 추첨: 금색 강조 */
+.prize-item.lucky {
+  background: linear-gradient(160deg, rgba(255, 209, 102, 0.28), rgba(255, 140, 36, 0.12));
+  border: 1px solid #ffd166;
+  box-shadow: 0 0 16px rgba(255, 209, 102, 0.35);
+}
+
+.prize-item.lucky .prize-tag {
+  color: #1a1020;
+  background: #ffd166;
+}
+
+.prize-item.lucky .prize-amount {
+  color: #ffd166;
+  font-size: 26px;
+  font-weight: 950;
+  line-height: 1.1;
+  text-shadow: 0 0 12px rgba(255, 209, 102, 0.55);
+}
+
+.prize-item.lucky .prize-name {
+  font-size: 13px;
 }
 
 @keyframes prize-glow {
