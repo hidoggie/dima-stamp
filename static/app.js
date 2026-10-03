@@ -131,6 +131,20 @@
   };
   const FESTA_DAYS = Object.keys(PROGRAM).sort();
 
+  // 학과 목록 (학부별) — 드롭다운에 학부 단위로 묶여서 표시됨
+  const DEPARTMENTS = [
+    ["창의융합교양학부", ["창의교양과"]],
+    ["미디어창작학부", ["음향제작과", "뉴미디어콘텐츠과", "디지털영상디자인과", "무대미술과"]],
+    ["콘텐츠창작학부", ["영상제작과", "방송콘텐츠제작과", "영화예술과", "방송극작과", "광고크리에이티브과", "패션스타일리스트과", "엔터테인먼트경영과"]],
+    ["공연예술학부", ["연극과", "뮤지컬과", "방송영화연기과", "K-POP과"]],
+    ["실용음악학부", ["기악과", "보컬과", "작곡과"]],
+    ["전공심화", ["콘텐츠제작학과", "방송기술학과", "연기예술학과", "실용음악학과", "방송콘텐츠제작학과", "음향제작학과", "K-POP학과", "문화예술마케팅학과"]],
+    ["자유전공", ["방송기술자유전공과", "콘텐츠창작자유전공과", "글로벌K-뮤직콘텐츠과"]],
+  ];
+
+  const STAFF_OPTION = "직원";
+  const DEPARTMENT_LIST = [...DEPARTMENTS.flatMap(([, list]) => list), STAFF_OPTION];
+
   function dateKey(d) {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   }
@@ -516,7 +530,7 @@ function stampRow(id) {
         <span class="prize-label">🎁 참여 혜택</span>
         <div class="prize-grid">
           <div class="prize-item basic">
-            <span class="prize-tag">참여자 전원</span>
+            <span class="prize-tag">매일 선착순 1000명</span>
             <span class="prize-name">편의점 상품권</span>
             <span class="prize-sub">설문 완료 시 지급</span>
           </div>
@@ -605,12 +619,30 @@ function stampRow(id) {
     type = "text",
     autocomplete = "off",
     inputmode = "text",
+    hint = "",
   ) {
     const value = state.participant[name] || "";
     return `<div class="glass-card field-card">
       <label class="field-label" for="${name}">${label} <span class="required" aria-label="필수">*</span></label>
+      ${hint ? `<p class="field-hint">${hint}</p>` : ""}
       <input class="input" id="${name}" name="${name}" type="${type}" inputmode="${inputmode}" autocomplete="${autocomplete}"
         value="${escapeHtml(value)}" placeholder="${escapeHtml(placeholder)}" required />
+    </div>`;
+  }
+
+  function departmentField() {
+    const value = state.participant.department || "";
+    const groups = DEPARTMENTS.map(([group, list]) => `
+        <optgroup label="${escapeHtml(group)}">
+          ${list.map((d) => `<option value="${escapeHtml(d)}" ${d === value ? "selected" : ""}>${escapeHtml(d)}</option>`).join("")}
+        </optgroup>`).join("");
+    return `<div class="glass-card field-card">
+      <label class="field-label" for="department">학과(전공) <span class="required" aria-label="필수">*</span></label>
+      <select class="input select" id="department" name="department" required>
+        <option value="" disabled ${DEPARTMENT_LIST.includes(value) ? "" : "selected"}>학과를 선택해 주세요.</option>
+        ${groups}
+        <option value="${STAFF_OPTION}" ${value === STAFF_OPTION ? "selected" : ""}>${STAFF_OPTION}</option>
+      </select>
     </div>`;
   }
 
@@ -622,13 +654,13 @@ function stampRow(id) {
       <p class="lead">참여자 정보를 입력해 주세요.<br />모바일 편의점 상품권 지급, 중복 참여 확인 및 수업협조문 발급을 위해 사용됩니다.</p>
       <form class="stack" id="participant-form" style="margin-top:14px" novalidate>
         ${field("name", "성명", "이름을 입력해 주세요.", "text", "name")}
-        ${field("studentId", "학번", "학번을 입력해 주세요.", "text", "off", "numeric")}
-        ${field("department", "학과(전공)", "학과 또는 전공을 입력해 주세요.", "text", "organization")}
+        ${field("studentId", "학번", "학번을 입력해 주세요.", "text", "off", "text", '교직원은 "교원" 또는 "직원"으로 기입')}
+        ${departmentField()}
         ${field("phone", "휴대전화번호", "010-0000-0000", "tel", "tel", "tel")}
         <p class="note" style="text-align:left;margin-top:-2px">※ 모두 필수입력</p>
         <div class="info-grid">
           <article class="glass-card info-card"><span class="info-icon inline-icon">${icon("phone")}</span><h3>휴대전화번호 안내</h3><p>모바일 편의점 상품권을 받을 수 있는 정확한 휴대전화번호를 입력해 주세요.</p></article>
-          <article class="glass-card info-card"><span class="info-icon inline-icon">${icon("document")}</span><h3>중복 지급 기준</h3><p>모바일 편의점 상품권은 1인 1회 지급됩니다.</p></article>
+          <article class="glass-card info-card"><span class="info-icon inline-icon">${icon("document")}</span><h3>중복 지급 기준</h3><p>모바일 편의점 상품권은 1일 1회 (선착순 1000명) 지급됩니다.</p></article>
         </div>
         <p class="error" id="participant-error" hidden></p>
         <button class="btn btn-gift" type="submit">다음 ${icon("arrow")}</button>
@@ -1121,15 +1153,16 @@ function handleParticipant(form) {
       return;
     }
     
-    // 2. 학번 검사 (5~15자리 숫자/영문)
-    if (!/^[0-9A-Za-z-]{5,15}$/.test(participant.studentId)) {
-      showError("#participant-error", "학번을 정확히 입력해 주세요. (5자리 이상)");
+    // 2. 학번 검사 (5~15자리 숫자/영문, 교직원은 "교원" 또는 "직원")
+    const isStaffId = participant.studentId === "교원" || participant.studentId === "직원";
+    if (!isStaffId && !/^[0-9A-Za-z-]{5,15}$/.test(participant.studentId)) {
+      showError("#participant-error", '학번을 정확히 입력해 주세요. (교직원은 "교원" 또는 "직원")');
       return;
     }
 
     // 3. 학과 검사
-    if (participant.department.length < 2) {
-      showError("#participant-error", "학과(전공)를 2글자 이상 입력해 주세요.");
+    if (!DEPARTMENT_LIST.includes(participant.department)) {
+      showError("#participant-error", "학과(전공)를 목록에서 선택해 주세요.");
       return;
     }
 
