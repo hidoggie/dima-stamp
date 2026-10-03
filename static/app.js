@@ -104,6 +104,19 @@
 
   const ORDER = ["G", "I", "F", "T"];
 
+  // 학과 목록 (학부별) — 드롭다운에 학부 단위로 묶여서 표시됨
+  const DEPARTMENTS = [
+    ["창의융합교양학부", ["창의교양과"]],
+    ["미디어창작학부", ["음향제작과", "뉴미디어콘텐츠과", "디지털영상디자인과", "무대미술과"]],
+    ["콘텐츠창작학부", ["영상제작과", "방송콘텐츠제작과", "영화예술과", "방송극작과", "광고크리에이티브과", "패션스타일리스트과", "엔터테인먼트경영과"]],
+    ["공연예술학부", ["연극과", "뮤지컬과", "방송영화연기과", "K-POP과"]],
+    ["실용음악학부", ["기악과", "보컬과", "작곡과"]],
+    ["전공심화", ["콘텐츠제작학과", "방송기술학과", "연기예술학과", "실용음악학과", "방송콘텐츠제작학과", "음향제작학과", "K-POP학과", "문화예술마케팅학과"]],
+    ["자유전공", ["방송기술자유전공과", "콘텐츠창작자유전공과", "글로벌K-뮤직콘텐츠과"]],
+  ];
+  const STAFF_OPTION = "직원";
+  const DEPARTMENT_LIST = [...DEPARTMENTS.flatMap(([, list]) => list), STAFF_OPTION];
+
   // ===== 축제 안내 (안내1: 프로그램 일정표 / 안내2: 장소 안내) =====
   const GUIDES = {
     schedule: { src: "assets/guide-schedule.jpg", title: "축제 프로그램 일정표" },
@@ -130,20 +143,6 @@
     ],
   };
   const FESTA_DAYS = Object.keys(PROGRAM).sort();
-
-  // 학과 목록 (학부별) — 드롭다운에 학부 단위로 묶여서 표시됨
-  const DEPARTMENTS = [
-    ["창의융합교양학부", ["창의교양과"]],
-    ["미디어창작학부", ["음향제작과", "뉴미디어콘텐츠과", "디지털영상디자인과", "무대미술과"]],
-    ["콘텐츠창작학부", ["영상제작과", "방송콘텐츠제작과", "영화예술과", "방송극작과", "광고크리에이티브과", "패션스타일리스트과", "엔터테인먼트경영과"]],
-    ["공연예술학부", ["연극과", "뮤지컬과", "방송영화연기과", "K-POP과"]],
-    ["실용음악학부", ["기악과", "보컬과", "작곡과"]],
-    ["전공심화", ["콘텐츠제작학과", "방송기술학과", "연기예술학과", "실용음악학과", "방송콘텐츠제작학과", "음향제작학과", "K-POP학과", "문화예술마케팅학과"]],
-    ["자유전공", ["방송기술자유전공과", "콘텐츠창작자유전공과", "글로벌K-뮤직콘텐츠과"]],
-  ];
-
-  const STAFF_OPTION = "직원";
-  const DEPARTMENT_LIST = [...DEPARTMENTS.flatMap(([, list]) => list), STAFF_OPTION];
 
   function dateKey(d) {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -288,9 +287,69 @@
   let previousFocus = null;
 
   const DRAFT_KEY = "dima_survey_draft_v1";
+  const CERT_KEY = "dima_cert_v1";         // 참여일별 확인증 정보 { "2026-10-07": {...}, ... }
+  const QUEUE_KEY = "dima_offline_queue";  // 미전송 설문 (배열, 예전 단일 객체 형식도 호환)
 
   function kstToday() {
     return new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
+  }
+
+  function kstNow() {
+    return new Date().toLocaleString("sv-SE", { timeZone: "Asia/Seoul" }).slice(0, 16); // YYYY-MM-DD HH:MM
+  }
+
+  function loadJSON(key, fallback) {
+    try {
+      const v = JSON.parse(localStorage.getItem(key));
+      return v ?? fallback;
+    } catch (e) {
+      return fallback;
+    }
+  }
+
+  // ----- 확인증 정보: 새로고침·뒤로가기·브라우저 종료 후에도 다시 저장할 수 있게 로컬에 보관 -----
+  function saveCertRecord(rec) {
+    const all = loadJSON(CERT_KEY, {});
+    all[rec.eventDay] = rec;
+    try { localStorage.setItem(CERT_KEY, JSON.stringify(all)); } catch (e) {}
+  }
+
+  function getTodayCert() {
+    const all = loadJSON(CERT_KEY, {});
+    return all[state.eventDay || kstToday()] || null;
+  }
+
+  // ----- 미전송 설문 큐 (여러 건 보관: 7일분이 남은 채 8일에 또 제출해도 덮어쓰지 않음) -----
+  function readQueue() {
+    const q = loadJSON(QUEUE_KEY, []);
+    if (Array.isArray(q)) return q;
+    return q && q.idempotencyKey ? [q] : []; // 예전 단일 객체 형식
+  }
+
+  function writeQueue(q) {
+    if (q.length) localStorage.setItem(QUEUE_KEY, JSON.stringify(q));
+    else localStorage.removeItem(QUEUE_KEY);
+  }
+
+  function enqueueSurvey(payload) {
+    const q = readQueue().filter((p) => p.idempotencyKey !== payload.idempotencyKey);
+    q.push(payload);
+    writeQueue(q);
+  }
+
+  function dequeueSurvey(key) {
+    writeQueue(readQueue().filter((p) => p.idempotencyKey !== key));
+  }
+
+  // 응답이 오래 안 오면(인파로 망 지연) 기다리지 않고 실패 처리 → 큐에 보관된 채 재시도
+  async function fetchWithTimeout(url, options = {}, ms = 10000) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), ms);
+    try {
+      return await fetch(url, { ...options, signal: ctrl.signal });
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   function escapeHtml(value = "") {
@@ -510,7 +569,8 @@ function stampRow(id) {
 
   function renderComplete() {
     const surveyBtnHtml = state.isSurveyDone
-      ? `<button class="btn" type="button" disabled>설문 참여 완료</button>`
+      ? `<button class="btn" type="button" disabled>설문 참여 완료</button>
+         ${getTodayCert() ? `<button class="btn btn-gift" type="button" data-action="cert-again">확인증 저장하기 ${icon("document")}</button>` : ""}`
       : `<button class="btn btn-gift" type="button" data-action="survey">만족도 조사하고 혜택 받기 ${icon("arrow")}</button>`;
 
     return `<section class="screen center" aria-labelledby="complete-title">
@@ -714,6 +774,7 @@ function stampRow(id) {
       <div class="miracle" style="margin: 22px 0 26px; font-size: 32px;">Miracle DIMA</div>
 
       <div class="button-stack">
+        ${getTodayCert() ? `<button class="btn btn-gift" type="button" data-action="cert-again">확인증 다시 저장하기 ${icon("document")}</button>` : ""}
         <button class="btn btn-primary" type="button" data-action="home">처음 화면으로</button>
       </div>
     </section>`;
@@ -897,7 +958,7 @@ function stampRow(id) {
   }
 
   function showFinal() {
-    const isOffline = !!localStorage.getItem("dima_offline_queue");
+    const isOffline = readQueue().length > 0;
     const statusText = isOffline 
       ? "<p id='sync-status' style='color:#FF4D69; font-weight:bold; margin-top:5px;'>서버 동기화 대기중</p>" 
       : "<p id='sync-status' style='color:#22c55e; font-weight:bold; margin-top:5px;'>서버 전송 완료</p>";
@@ -936,7 +997,8 @@ function stampRow(id) {
       (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
   }
 
-  function drawCertificate() {
+  // rec: { name, studentId, code, eventDay, submittedAt } — 로컬에 보관된 확인증 정보
+  function drawCertificate(rec) {
     const canvas = document.createElement("canvas");
     canvas.width = 600;
     canvas.height = 480;
@@ -981,33 +1043,48 @@ function stampRow(id) {
     const startX = 80;
     let startY = 190;
     const lineH = 50;
-    ctx.fillText(`▪ 이름: ${state.participant.name}`, startX, startY); startY += lineH;
-    ctx.fillText(`▪ 학번: ${state.participant.studentId}`, startX, startY); startY += lineH;
-    ctx.fillText(`▪ 인증코드: ${(state.idempotencyKey || "").split("-")[0]}`, startX, startY); startY += lineH;
+    ctx.fillText(`▪ 이름: ${rec.name}`, startX, startY); startY += lineH;
+    ctx.fillText(`▪ 학번: ${rec.studentId}`, startX, startY); startY += lineH;
+    ctx.fillText(`▪ 인증코드: ${rec.code}`, startX, startY); startY += lineH;
 
     ctx.font = "20px sans-serif";
     ctx.fillStyle = "#aaaaaa";
-    ctx.fillText(`▪ 저장일시: ${new Date().toLocaleString()}`, startX, startY + 30);
+    ctx.fillText(`▪ 참여일시: ${rec.submittedAt}`, startX, startY + 30);
 
     return canvas;
   }
 
-  // 팝업이 뜰 때 미리 생성 → 버튼 탭 직후 바로 share() 호출 가능
+  // 확인증 준비: 로컬에 보관된 오늘자 정보로 생성 (새로고침·뒤로가기 후에도 동일한 확인증)
   function prepareCertificate() {
-    state.certCanvas = drawCertificate();
+    const rec = getTodayCert();
+    if (!rec) {
+      state.certCanvas = null;
+      state.certFile = null;
+      return false;
+    }
+    state.certCanvas = drawCertificate(rec);
     state.certFile = null;
     state.certCanvas.toBlob((blob) => {
       if (blob) state.certFile = new File([blob], CERT_FILE_NAME, { type: "image/png" });
     }, "image/png");
+    return true;
   }
 
+  function ensureCertificate() {
+    if (state.certCanvas || prepareCertificate()) return true;
+    showToast("이 기기에 저장된 확인증 정보가 없습니다.");
+    return false;
+  }
+
+  // 저장 후 이동: 설문 직후(개인정보 화면) → 완료 화면 / 완료 화면 → 처음 화면 / 그 외 → 팝업만 닫기
   function finishToDone() {
     closeModal(false);
-    navigate(state.screen === "done" ? "start" : "done", true);
+    if (state.screen === "privacy") navigate("done", true);
+    else if (state.screen === "done") navigate("start", true);
   }
 
   function saveCertificate() {
-    if (!state.certCanvas) prepareCertificate();
+    if (!ensureCertificate()) return;
     const file = state.certFile;
 
     // iPhone: 공유 창 → '이미지 저장' (실패·취소 시 길게 눌러 저장 안내)
@@ -1034,7 +1111,7 @@ function stampRow(id) {
   }
 
   function showCertificateFallback(downloaded = false) {
-    if (!state.certCanvas) prepareCertificate();
+    if (!ensureCertificate()) return;
     const message = downloaded
       ? `확인증을 다운로드했어요. <span style="white-space:nowrap">(내 파일 › 다운로드)</span><br />저장이 안 됐다면 아래 이미지를 <strong style="color:#fff">길게 눌러</strong> 저장해 주세요.`
       : `아래 이미지를 <strong style="color:#fff">길게 눌러</strong><br />'사진 앱에 저장'을 선택해 주세요.`;
@@ -1048,7 +1125,7 @@ function stampRow(id) {
       </div>`,
       "cert-title",
       "#B044FF",
-      state.screen === "done",
+      state.screen !== "privacy", // 설문 직후 첫 저장만 닫기(X) 없이, 다시 저장할 때는 닫기 가능
     );
   }
 
@@ -1160,7 +1237,7 @@ function handleParticipant(form) {
       return;
     }
 
-    // 3. 학과 검사
+    // 3. 학과 검사 (목록에서 선택한 값만 허용)
     if (!DEPARTMENT_LIST.includes(participant.department)) {
       showError("#participant-error", "학과(전공)를 목록에서 선택해 주세요.");
       return;
@@ -1359,7 +1436,16 @@ async function submitFinalData() {
   if (!state.idempotencyKey) {
     state.idempotencyKey = typeof crypto.randomUUID === "function" 
       ? crypto.randomUUID() 
-      : 'id-' + new Date().getTime() + '-' + Math.floor(Math.random() * 10000);
+      : Date.now().toString(16) + '-' + Math.floor(Math.random() * 1e8).toString(16);
+  }
+
+  // 중복 탭 방지 (전송 대기 중 버튼을 여러 번 눌러도 1번만 처리)
+  if (state.submitting) return;
+  state.submitting = true;
+  const finishBtn = document.querySelector("#finish-button");
+  if (finishBtn) {
+    finishBtn.disabled = true;
+    finishBtn.textContent = "제출 중...";
   }
 
   const payload = {
@@ -1369,39 +1455,45 @@ async function submitFinalData() {
     eventDay: state.eventDay || kstToday(),
   };
 
+  // 2. ★ 전송 '전'에 먼저 휴대폰에 보관 (전송 중 앱을 닫거나 망이 끊겨도 유실 없음)
+  enqueueSurvey(payload);
+  saveCertRecord({
+    name: state.participant.name,
+    studentId: state.participant.studentId,
+    code: state.idempotencyKey.split("-")[0],
+    eventDay: payload.eventDay,
+    submittedAt: kstNow(),
+  });
+  localStorage.removeItem(DRAFT_KEY); // 작성 중이던 임시 데이터 비우기
+  state.isSurveyDone = true;
+
+  // 3. 서버 전송 (10초 안에 응답이 없으면 보관된 채로 두고 자동 재시도)
+  let sent = false;
   try {
-    const res = await fetch("/api/tour/submit_survey", {
+    const res = await fetchWithTimeout("/api/tour/submit_survey", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
     const data = await res.json();
-
-    // 2. 정상 성공 또는 중복 제출 시
     if (data.success || data.already_submitted) {
-      localStorage.removeItem("dima_offline_queue"); // 오프라인 큐 비우기
-      localStorage.removeItem(DRAFT_KEY);            // 작성 중이던 임시 데이터 비우기
-      state.isSurveyDone = true;
-      
+      dequeueSurvey(payload.idempotencyKey);
+      sent = true;
       if (data.already_submitted) {
         showToast("이미 제출된 설문 내역이 있어 기존 기록이 유지됩니다.");
       }
-
-      // ★ 정상 처리 후 모달 팝업 띄우기 (이전 코드에서 누락되었던 핵심)
-      showFinal();
-    } else {
-      throw new Error("Server error");
     }
   } catch (err) {
-    // 3. [낙관적 UI 처리] 통신 실패 시 오프라인 큐에 저장 후 강제 완료 처리
-    showToast("네트워크 불안정으로 오프라인 저장되었습니다.");
-    localStorage.setItem("dima_offline_queue", JSON.stringify(payload));
-    localStorage.removeItem(DRAFT_KEY); // 작성 중이던 임시 데이터 비우기
-    state.isSurveyDone = true;
-    
-    // ★ 에러가 났을 때도 모달 팝업 띄우기
-    showFinal();
+    // 망 끊김·지연·서버 오류 → 아래에서 재시도 예약
   }
+
+  if (!sent) {
+    showToast("네트워크가 불안정해 휴대폰에 안전하게 보관했어요. 연결되면 자동 전송됩니다.");
+    startQueueRetry();
+  }
+
+  state.submitting = false;
+  showFinal();
 }
 
   modalRoot.addEventListener("click", (event) => {
@@ -1502,6 +1594,12 @@ async function submitFinalData() {
   }
 
   window.addEventListener("popstate", (event) => {
+    // 설문 직후 완료/확인증 팝업이 떠 있을 때 뒤로가기 → 막고 팝업 유지 (확인증 저장 유도)
+    if (state.screen === "privacy" && modalRoot.querySelector("#final-title, #cert-title")) {
+      history.pushState({ screen: state.screen, zone: state.zone }, "", `#${state.screen}`);
+      showToast("확인 버튼을 눌러 완료 확인증을 저장해 주세요.");
+      return;
+    }
     const screen = event.state?.screen;
     state.screen = VALID_SCREENS.includes(screen) ? screen : "start";
     if (ZONES[event.state?.zone]) state.zone = event.state.zone;
@@ -1557,31 +1655,58 @@ async function submitFinalData() {
   }
 
 // 큐에 있는 데이터를 서버로 밀어넣고 UI를 업데이트하는 전용 함수
-async function flushOfflineQueue() {
-  const queueData = localStorage.getItem("dima_offline_queue");
-  if (!queueData) return; // 큐가 비어있으면 종료
+let flushingQueue = false;
+let queueRetryTimer = null;
 
+async function flushOfflineQueue() {
+  if (flushingQueue) return;           // 동시에 여러 번 실행되지 않게
+  const queue = readQueue();
+  if (!queue.length) {
+    stopQueueRetry();
+    return;
+  }
+
+  flushingQueue = true;
   try {
-    const res = await fetch("/api/tour/submit_survey", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: queueData,
-    });
-    const data = await res.json();
-    
-    if (data.success || data.already_submitted) {
-      localStorage.removeItem("dima_offline_queue"); // 큐 비우기
-      
-      // 완료 화면에 떠 있는 상태 텍스트 강제 변경
-      const syncStatusEl = document.querySelector("#sync-status");
-      if (syncStatusEl) {
-        syncStatusEl.innerHTML = "서버 전송 완료";
-        syncStatusEl.style.color = "#22c55e";
+    for (const payload of queue) {
+      try {
+        const res = await fetchWithTimeout("/api/tour/submit_survey", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (data.success || data.already_submitted) dequeueSurvey(payload.idempotencyKey);
+      } catch (e) {
+        console.warn("오프라인 큐 전송 실패. 통신망 복구 대기중...");
+        break; // 망이 안 되면 나머지도 다음 재시도에서
       }
     }
-  } catch(e) {
-    console.warn("오프라인 큐 전송 실패. 통신망 복구 대기중...");
+  } finally {
+    flushingQueue = false;
   }
+
+  if (!readQueue().length) {
+    stopQueueRetry();
+    // 완료 팝업에 떠 있는 상태 텍스트 갱신
+    const syncStatusEl = document.querySelector("#sync-status");
+    if (syncStatusEl) {
+      syncStatusEl.innerHTML = "서버 전송 완료";
+      syncStatusEl.style.color = "#22c55e";
+    }
+  } else {
+    startQueueRetry();
+  }
+}
+
+// 와이파이는 연결돼 있는데 서버만 응답이 느린 경우('online' 이벤트가 안 옴) 대비: 15초마다 재시도
+function startQueueRetry() {
+  if (!queueRetryTimer) queueRetryTimer = setInterval(flushOfflineQueue, 15000);
+}
+
+function stopQueueRetry() {
+  clearInterval(queueRetryTimer);
+  queueRetryTimer = null;
 }
 
 // 1. 통신망 복구 이벤트 감지 시 트리거
