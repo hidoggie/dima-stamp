@@ -323,6 +323,10 @@ app.post("/api/tour/arrive", authenticate, async (req, res) => {
     const { dima_id, lat, lng } = req.body;
     const { id: user_id, role } = req.user;
 
+    if (!Number.isFinite(Number(lat)) || !Number.isFinite(Number(lng))) {
+      return res.status(400).json({ error: "위치 정보가 올바르지 않습니다. 다시 시도해주세요." });
+    }
+
     const targetRes = await pool.query(
       "SELECT id, lat, lng, radius_m FROM dima_stampspot WHERE id = $1",
       [dima_id],
