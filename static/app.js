@@ -465,9 +465,9 @@
       <div class="button-stack">
         ${
           allComplete
-            ? `<button class="btn btn-gift" type="button" data-action="complete">
-            GIFT 완주 화면 보기 ${icon("arrow")}
-          </button>`
+? (state.isSurveyDone
+    ? `<button class="btn btn-gift" type="button" data-action="complete">GIFT 완주 화면 보기 ${icon("arrow")}</button>`
+    : `<button class="btn btn-gift" type="button" data-action="survey">🎁 마지막 단계! 설문하고 상품권 받기 ${icon("arrow")}</button>`)
             : ""
         }
         <button class="btn btn-stampbook" type="button" data-action="stampbook">${icon("book")} 내 스탬프북 보기</button>
@@ -911,6 +911,7 @@ function stampRow(id) {
   }
 
   function showCorrect(zone) {
+    const lastStamp = state.stamps.length === 4 && !state.isSurveyDone;
     showModal(
       `<div class="result-icon inline-icon">${icon("check")}</div>
       <h2 id="result-title">정답입니다!</h2>
@@ -920,7 +921,8 @@ function stampRow(id) {
       <img class="modal-stamp" src="${zone.stampBook || zone.stamp}" alt="${zone.id} 스탬프 획득" />
       <h3 style="color:${zone.textColor || zone.color}">${escapeHtml(zone.stampTitle)}</h3>
       <p>${escapeHtml(zone.stampBody)}</p>
-      <div class="button-stack"><button class="btn btn-zone" type="button" data-action="after-stamp" style="${zoneStyle(zone)}">다음으로</button></div>`,
+      ${lastStamp ? `<div class="gift-banner" style="margin-top:14px"><strong>🎉 GIFT 4개 완성! 마지막 단계만 남았어요</strong><span>1분 설문까지 완료해야 편의점 상품권이 지급됩니다.</span></div>` : ""}
+      <div class="button-stack"><button class="btn btn-zone" type="button" data-action="after-stamp" style="${zoneStyle(zone)}">${lastStamp ? "🎁 설문하고 상품권 받기" : "다음으로"}</button></div>`,
       "result-title",
       zone.color,
     );
@@ -1269,7 +1271,35 @@ function handleParticipant(form) {
 
       showToast("위치를 확인 중입니다...");
 
+    // ==========================================
+    // [테스트용 임시 코드] 행사장 좌표 강제 셋팅
+    // ==========================================
 
+    const latitude = 37.0589182;
+    const longitude = 127.3581239;
+    const dima_id = ZONES[id].dima_id;
+
+    try {
+      const res = await fetch("/api/tour/arrive", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dima_id, lat: latitude, lng: longitude }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        // 위치 통과 시 -> AR 화면으로 진입!
+        state.zone = id;
+        navigate("ar");
+      } else {
+        showToast(data.error || "위치 인증에 실패했습니다.");
+      }
+    } catch (err) {
+      showToast("서버와 통신할 수 없습니다.");
+    }
+
+
+ /* ---
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const { latitude, longitude } = pos.coords;
@@ -1298,7 +1328,7 @@ function handleParticipant(form) {
         showToast("GPS 위치 권한을 허용해주세요.");
       },
     );
-
+---------------------------------------- */
 
   }
 
@@ -1490,7 +1520,8 @@ async function submitFinalData() {
     }
     if (action === "after-stamp") {
       closeModal(false);
-      navigate(state.stamps.length === 4 ? "stampbook" : "start");
+      if (state.stamps.length === 4) navigate(state.isSurveyDone ? "complete" : "survey1");
+      else navigate("start");
     }
 
     if (action === "confirm-final") saveCertificate();
