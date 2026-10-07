@@ -930,7 +930,7 @@ function stampRow(id) {
   }
 
   function maybeShowSurveyReminder() {
-    if (state.screen !== "start") return;
+    if (!["start", "complete", "stampbook"].includes(state.screen)) return;
     if (state.stamps.length !== 4 || state.isSurveyDone || getTodayCert()) return;
     showModal(
       `<div class="result-icon inline-icon">${icon("gift")}</div>
