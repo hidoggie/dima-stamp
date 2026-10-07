@@ -805,6 +805,7 @@ function stampRow(id) {
     closeModal(false);
     renderHeader();
     app.innerHTML = (RENDERERS[state.screen] || renderStart)();
+    maybeShowSurveyReminder();
 
     requestAnimationFrame(() => {
       app.focus({ preventScroll: true });
@@ -925,6 +926,22 @@ function stampRow(id) {
       <div class="button-stack"><button class="btn btn-zone" type="button" data-action="after-stamp" style="${zoneStyle(zone)}">${lastStamp ? "🎁 설문하고 상품권 받기" : "다음으로"}</button></div>`,
       "result-title",
       zone.color,
+    );
+  }
+
+  function maybeShowSurveyReminder() {
+    if (state.screen !== "start") return;
+    if (state.stamps.length !== 4 || state.isSurveyDone || getTodayCert()) return;
+    showModal(
+      `<div class="result-icon inline-icon">${icon("gift")}</div>
+      <h2 id="remind-title">잠깐! 설문을 아직 안 하셨어요</h2>
+      <p style="margin-top:10px">스탬프 4개를 모두 모았지만<br /><strong style="color:#fff">설문까지 완료해야 편의점 상품권이 지급</strong>됩니다.</p>
+      <p style="margin-top:6px">1분이면 끝나요! (오늘 밤 12시까지)</p>
+      <div class="button-stack">
+        <button class="btn btn-gift" type="button" data-action="go-survey">🎁 지금 설문하고 상품권 받기</button>
+      </div>`,
+      "remind-title",
+      "#B044FF",
     );
   }
 
@@ -1524,6 +1541,10 @@ async function submitFinalData() {
       else navigate("start");
     }
 
+    if (action === "go-survey") {
+      closeModal(false);
+      navigate("survey1");
+    }
     if (action === "confirm-final") saveCertificate();
     if (action === "cert-done") finishToDone();
 
