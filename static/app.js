@@ -280,6 +280,14 @@
   };
   let toastTimer = null;
   let previousFocus = null;
+  let rendering = false; // render() 내부의 closeModal 호출 시 안내 팝업 중복 표시 방지
+
+  // ★ [설문 전용 모드] server.js 의 SURVEY_ONLY_* 값과 맞춰 주세요.
+  const SURVEY_ONLY_MODE = true;
+  const SURVEY_ONLY_START = "2026-10-12";
+  const SURVEY_ONLY_END = "2026-10-18";
+  const SURVEY_ONLY_END_LABEL = "10월 18일(일)";
+  const SURVEY_ONLY_SCREENS = ["survey1", "survey2", "participant", "privacy", "done"];
 
   const DRAFT_KEY = "dima_survey_draft_v1";
   const CERT_KEY = "dima_cert_v1";         // 참여일별 확인증 정보 { "2026-10-07": {...}, ... }
@@ -311,7 +319,55 @@
 
   function getTodayCert() {
     const all = loadJSON(CERT_KEY, {});
+    // ★ 설문 전용 기간: 연장 기간 중 제출한 가장 최근 확인증 (다음 날 다시 들어와도 저장 가능)
+    if (SURVEY_ONLY_MODE) {
+      const days = Object.keys(all)
+        .filter((d) => d >= SURVEY_ONLY_START && d <= SURVEY_ONLY_END)
+        .sort();
+      return days.length ? all[days[days.length - 1]] : null;
+    }
     return all[state.eventDay || kstToday()] || null;
+  }
+
+  // ═══════════════════════════════════════════════
+  //  ★ [설문 전용 모드] 스탬프투어 종료 후 설문조사만 운영
+  //    - 설문 화면(survey1~privacy)과 완료 화면(done) 외에는 모두 잠금
+  //    - 잠긴 화면에서는 닫을 수 없는 안내 팝업을 항상 띄움 (닫히면 즉시 다시 표시)
+  // ═══════════════════════════════════════════════
+  function isSurveyClosedNow() {
+    return state.surveyClosed || kstToday() > SURVEY_ONLY_END;
+  }
+
+  function isLockedScreen() {
+    return SURVEY_ONLY_MODE && !SURVEY_ONLY_SCREENS.includes(state.screen);
+  }
+
+  function showSurveyOnlyGate() {
+    let body;
+    if (isSurveyClosedNow() && !state.isSurveyDone) {
+      body = `<div class="result-icon inline-icon">${icon("clock")}</div>
+        <h2 id="gate-title">설문조사가 마감되었습니다</h2>
+        <p style="margin-top:10px">GIFT Festa 2026 스탬프투어와 만족도 조사가<br />모두 종료되었습니다.</p>
+        <p style="margin-top:6px">참여해 주셔서 감사합니다.</p>
+        <div class="final-brand"><em>Miracle DIMA,</em><strong>${giftLetters()} Festa 2026</strong></div>`;
+    } else if (state.isSurveyDone) {
+      body = `<div class="result-icon inline-icon">${icon("check")}</div>
+        <h2 id="gate-title">설문 참여 완료</h2>
+        <p style="margin-top:10px">만족도 조사에 이미 참여해 주셨습니다.<br />참여해 주셔서 감사합니다.</p>
+        <div class="final-brand"><em>Miracle DIMA,</em><strong>${giftLetters()} Festa 2026</strong></div>
+        ${getTodayCert() ? `<div class="button-stack">
+          <button class="btn btn-gift" type="button" data-action="cert-again">확인증 다시 저장하기 ${icon("document")}</button>
+        </div>` : ""}`;
+    } else {
+      body = `<div class="result-icon inline-icon">${icon("gift")}</div>
+        <span class="eyebrow">SURVEY</span>
+        <h2 id="gate-title" style="margin-top:10px">GIFT 스탬프투어는<br />종료되었습니다</h2>
+        <p style="margin-top:10px">참여해 주셔서 감사합니다.<br /><strong style="color:#fff">만족도 조사는 ${SURVEY_ONLY_END_LABEL}까지</strong><br />계속 참여하실 수 있어요.</p>
+        <div class="button-stack">
+          <button class="btn btn-gift" type="button" data-action="go-survey">🎁 만족도 조사 참여하기 ${icon("arrow")}</button>
+        </div>`;
+    }
+    showModal(body, "gate-title", "#B044FF", false); // 닫기(X) 버튼 없음
   }
 
   // ----- 미전송 설문 큐 (여러 건 보관: 7일분이 남은 채 8일에 또 제출해도 덮어쓰지 않음) -----
@@ -715,7 +771,7 @@ function stampRow(id) {
         <p class="note" style="text-align:left;margin-top:-2px">※ 모두 필수입력</p>
         <div class="info-grid">
           <article class="glass-card info-card"><span class="info-icon inline-icon">${icon("phone")}</span><h3>휴대전화번호 안내</h3><p>모바일 편의점 상품권을 받을 수 있는 정확한 휴대전화번호를 입력해 주세요.</p></article>
-          <article class="glass-card info-card"><span class="info-icon inline-icon">${icon("document")}</span><h3>중복 지급 기준</h3><p>모바일 편의점 상품권은 1일 1회 (선착순 1000명) 지급됩니다.</p></article>
+          <article class="glass-card info-card"><span class="info-icon inline-icon">${icon("document")}</span><h3>중복 지급 기준</h3><p>${SURVEY_ONLY_MODE ? `모바일 편의점 상품권은 설문 기간(~${SURVEY_ONLY_END_LABEL}) 중 1인 1회 지급됩니다.` : "모바일 편의점 상품권은 1일 1회 (선착순 1000명) 지급됩니다."}</p></article>
         </div>
         <p class="error" id="participant-error" hidden></p>
         <button class="btn btn-gift" type="submit">다음 ${icon("arrow")}</button>
@@ -798,13 +854,28 @@ function stampRow(id) {
       history.replaceState({ screen: "complete", zone: state.zone }, "", "#complete");
     }
 
+    // ★ [설문 전용 모드] 설문 화면 외에는 모두 시작 화면(배경) + 닫을 수 없는 안내 팝업으로 고정
+    if (SURVEY_ONLY_MODE) {
+      const closedButOnSurvey = isSurveyClosedNow() && state.screen !== "done";
+      if (state.screen === "complete" || closedButOnSurvey || !SURVEY_ONLY_SCREENS.includes(state.screen)) {
+        state.screen = "start";
+        history.replaceState({ screen: "start", zone: state.zone }, "", "#start");
+      }
+    }
+
     if (state.screen !== "ar" && window.stopTigerQuest) {
       window.stopTigerQuest();
     }
 
+    rendering = true;
     closeModal(false);
+    rendering = false;
     renderHeader();
     app.innerHTML = (RENDERERS[state.screen] || renderStart)();
+    if (isLockedScreen()) {
+      showSurveyOnlyGate();
+      return; // 잠긴 화면에서는 AR 등 이후 로직 실행 안 함
+    }
     maybeShowSurveyReminder();
 
     requestAnimationFrame(() => {
@@ -930,6 +1001,7 @@ function stampRow(id) {
   }
 
   function maybeShowSurveyReminder() {
+    if (SURVEY_ONLY_MODE) return; // 설문 전용 모드에서는 스탬프 기반 안내 팝업 사용 안 함
     if (!["start", "complete", "stampbook"].includes(state.screen)) return;
     if (state.stamps.length !== 4 || state.isSurveyDone || getTodayCert()) return;
     showModal(
@@ -983,10 +1055,10 @@ function stampRow(id) {
       <!-- 1. 타이틀의 GIFT를 색상/점 있는 스타일로 변경 -->
       <h2 id="final-title" style="margin-top:10px">${giftLetters()} Festa 참여 완료!</h2>
       ${statusText}
-      <p style="margin-top:10px">GIFT 스탬프투어와 만족도 조사를 모두 완료했습니다.</p>
+      <p style="margin-top:10px">${SURVEY_ONLY_MODE ? "만족도 조사를 완료했습니다." : "GIFT 스탬프투어와 만족도 조사를 모두 완료했습니다."}</p>
       <div class="benefit-list">
         <article class="benefit-card"><span class="inline-icon">${icon("gift")}</span><div><h3>모바일 편의점 상품권</h3><p>입력한 휴대전화번호로 지급될 예정입니다.</p></div></article>
-        <article class="benefit-card"><span class="inline-icon">${icon("document")}</span><div><h3>수업협조문</h3><p>스탬프투어를 완료한 학생은 10월 14일 이후 학과 사무실에서 협조문을 수령할 수 있습니다.</p></div></article>
+        ${SURVEY_ONLY_MODE ? "" : `<article class="benefit-card"><span class="inline-icon">${icon("document")}</span><div><h3>수업협조문</h3><p>스탬프투어를 완료한 학생은 10월 14일 이후 학과 사무실에서 협조문을 수령할 수 있습니다.</p></div></article>`}
       </div>
       <div class="modal-divider"></div>
       <p style="color:#fff">참여해 주셔서 감사합니다.</p>
@@ -1164,6 +1236,8 @@ function stampRow(id) {
     document.body.style.overflow = "";
     if (restore && previousFocus instanceof HTMLElement) previousFocus.focus();
     previousFocus = null;
+    // ★ [설문 전용 모드] 잠긴 화면에서는 어떤 팝업이 닫히더라도(X·ESC·확인증 저장 후 등) 안내 팝업을 즉시 다시 표시
+    if (!rendering && isLockedScreen()) showSurveyOnlyGate();
   }
 
   function showToast(message) {
@@ -1268,7 +1342,8 @@ function handleParticipant(form) {
   }
 
   async function checkGPSAndEnterZone(id) {
-    
+    if (SURVEY_ONLY_MODE) return; // ★ 스탬프투어 종료: Zone 진입 차단
+
     if (!ZONES[id]) return;
 
     // 이미 획득한 곳이면 그냥 퀴즈 화면 열기(복습용)
@@ -1350,6 +1425,7 @@ function handleParticipant(form) {
   }
 
   app.addEventListener("click", (event) => {
+    if (isLockedScreen()) return; // ★ 설문 전용 모드: 잠긴 화면의 버튼은 동작하지 않음
     const control = event.target.closest("[data-action]");
     if (!control) return;
     const action = control.dataset.action;
@@ -1371,6 +1447,7 @@ function handleParticipant(form) {
 
 
   header.addEventListener("click", (event) => {
+    if (isLockedScreen()) return;
     const control = event.target.closest("[data-action]");
     if (!control) return;
     const action = control.dataset.action;
@@ -1489,12 +1566,13 @@ async function submitFinalData() {
       body: JSON.stringify(payload),
     });
     const data = await res.json();
-    if (data.success || data.already_submitted) {
+    if (data.success || data.already_submitted || data.closed) {
       dequeueSurvey(payload.idempotencyKey);
       sent = true;
       if (data.already_submitted) {
         showToast("이미 제출된 설문 내역이 있어 기존 기록이 유지됩니다.");
       }
+      if (data.closed) showToast("설문조사 기간이 종료되어 제출되지 않았습니다.");
     }
   } catch (err) {
     // 망 끊김·지연·서버 오류 → 아래에서 재시도 예약
@@ -1547,6 +1625,7 @@ async function submitFinalData() {
     }
     if (action === "confirm-final") saveCertificate();
     if (action === "cert-done") finishToDone();
+    if (action === "cert-again") showCertificateFallback();
 
 
     if (action === "reset") {
@@ -1663,11 +1742,14 @@ async function submitFinalData() {
         if (data.isSurveyDone) {
           state.isSurveyDone = true; 
         }
+        if (data.surveyClosed) state.surveyClosed = true;
 
       }
     } catch (err) {
       console.error("앱 초기화 오류", err);
     } finally {
+      // ★ 설문 전용 모드: 이 기기에서 연장 기간 중 이미 제출했다면(서버 응답이 없어도) 완료로 간주
+      if (SURVEY_ONLY_MODE && (getTodayCert() || readQueue().length)) state.isSurveyDone = true;
       render();
     }
   }
@@ -1694,7 +1776,7 @@ async function flushOfflineQueue() {
           body: JSON.stringify(payload),
         });
         const data = await res.json();
-        if (data.success || data.already_submitted) dequeueSurvey(payload.idempotencyKey);
+        if (data.success || data.already_submitted || data.closed) dequeueSurvey(payload.idempotencyKey);
       } catch (e) {
         console.warn("오프라인 큐 전송 실패. 통신망 복구 대기중...");
         break; // 망이 안 되면 나머지도 다음 재시도에서
