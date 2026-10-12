@@ -353,19 +353,38 @@
     } else if (state.isSurveyDone) {
       body = `<div class="result-icon inline-icon">${icon("check")}</div>
         <h2 id="gate-title">설문 참여 완료</h2>
-        <p style="margin-top:10px">만족도 조사에 이미 참여해 주셨습니다.<br />참여해 주셔서 감사합니다.</p>
+        <p style="margin-top:10px">만족도 조사에 이미 참여해 주셨습니다.<br />상품권 추첨(100명) 당첨 시<br />입력하신 휴대전화번호로 발송됩니다.</p>
         <div class="final-brand"><em>Miracle DIMA,</em><strong>${giftLetters()} Festa 2026</strong></div>
         ${getTodayCert() ? `<div class="button-stack">
           <button class="btn btn-gift" type="button" data-action="cert-again">확인증 다시 저장하기 ${icon("document")}</button>
         </div>` : ""}`;
     } else {
-      body = `<div class="result-icon inline-icon">${icon("gift")}</div>
-        <span class="eyebrow">SURVEY</span>
-        <h2 id="gate-title" style="margin-top:10px">GIFT 스탬프투어는<br />종료되었습니다</h2>
-        <p style="margin-top:10px">참여해 주셔서 감사합니다.<br /><strong style="color:#fff">만족도 조사는 ${SURVEY_ONLY_END_LABEL}까지</strong><br />계속 참여하실 수 있어요.</p>
+      // 마감까지 남은 일수 (마감 당일 = D-DAY)
+      const [ey, em, ed] = SURVEY_ONLY_END.split("-").map(Number);
+      const [ty, tm, td] = kstToday().split("-").map(Number);
+      const dLeft = Math.round((Date.UTC(ey, em - 1, ed) - Date.UTC(ty, tm - 1, td)) / 86400000);
+      const dLabel = dLeft > 0 ? `D-${dLeft}` : "D-DAY";
+
+      body = `<div class="gate-gift" aria-hidden="true">🎁</div>
+        <span class="gate-chip">🎉 그날의 감동, 아직 끝나지 않았어요!</span>
+        <h2 id="gate-title" class="gate-title">GIFT Festa<br /><span class="gate-hl">만족도 조사 이벤트</span></h2>
+        <p class="gate-lead">스탬프투어를 놓쳤어도 괜찮아요!<br />지금 설문에 참여하고<br /><strong>상품권 추첨</strong>에 응모하세요</p>
+
+        <div class="gate-prize">
+          <span class="gate-prize-tag">100명 추첨</span>
+          <strong class="gate-prize-name">편의점 모바일 상품권</strong>
+          <span class="gate-prize-sub">당첨 시 입력한 휴대전화번호로 발송돼요</span>
+        </div>
+
+        <div class="gate-meta">
+          <span>⏱ 약 1분</span>
+          <span>📅 ${SURVEY_ONLY_END_LABEL}까지 <em class="gate-dday">${dLabel}</em></span>
+        </div>
+
         <div class="button-stack">
-          <button class="btn btn-gift" type="button" data-action="go-survey">🎁 만족도 조사 참여하기 ${icon("arrow")}</button>
-        </div>`;
+          <button class="btn btn-gift gate-cta" type="button" data-action="go-survey">설문 참여하고 응모하기 ${icon("arrow")}</button>
+        </div>
+        <p class="gate-foot">여러분의 한마디가 다음 GIFT Festa를 만듭니다!</p>`;
     }
     showModal(body, "gate-title", "#B044FF", false); // 닫기(X) 버튼 없음
   }
@@ -771,7 +790,7 @@ function stampRow(id) {
         <p class="note" style="text-align:left;margin-top:-2px">※ 모두 필수입력</p>
         <div class="info-grid">
           <article class="glass-card info-card"><span class="info-icon inline-icon">${icon("phone")}</span><h3>휴대전화번호 안내</h3><p>모바일 편의점 상품권을 받을 수 있는 정확한 휴대전화번호를 입력해 주세요.</p></article>
-          <article class="glass-card info-card"><span class="info-icon inline-icon">${icon("document")}</span><h3>중복 지급 기준</h3><p>${SURVEY_ONLY_MODE ? `모바일 편의점 상품권은 설문 기간(~${SURVEY_ONLY_END_LABEL}) 중 1인 1회 지급됩니다.` : "모바일 편의점 상품권은 1일 1회 (선착순 1000명) 지급됩니다."}</p></article>
+          <article class="glass-card info-card"><span class="info-icon inline-icon">${icon("document")}</span><h3>${SURVEY_ONLY_MODE ? "상품권 추첨 안내" : "중복 지급 기준"}</h3><p>${SURVEY_ONLY_MODE ? `설문 참여자 중 100명을 추첨해 모바일 편의점 상품권을 드립니다. (1인 1회 응모)` : "모바일 편의점 상품권은 1일 1회 (선착순 1000명) 지급됩니다."}</p></article>
         </div>
         <p class="error" id="participant-error" hidden></p>
         <button class="btn btn-gift" type="submit">다음 ${icon("arrow")}</button>
@@ -1057,7 +1076,7 @@ function stampRow(id) {
       ${statusText}
       <p style="margin-top:10px">${SURVEY_ONLY_MODE ? "만족도 조사를 완료했습니다." : "GIFT 스탬프투어와 만족도 조사를 모두 완료했습니다."}</p>
       <div class="benefit-list">
-        <article class="benefit-card"><span class="inline-icon">${icon("gift")}</span><div><h3>모바일 편의점 상품권</h3><p>입력한 휴대전화번호로 지급될 예정입니다.</p></div></article>
+        <article class="benefit-card"><span class="inline-icon">${icon("gift")}</span><div><h3>모바일 편의점 상품권</h3><p>${SURVEY_ONLY_MODE ? "추첨(100명) 당첨 시 입력한 휴대전화번호로 발송됩니다." : "입력한 휴대전화번호로 지급될 예정입니다."}</p></div></article>
         ${SURVEY_ONLY_MODE ? "" : `<article class="benefit-card"><span class="inline-icon">${icon("document")}</span><div><h3>수업협조문</h3><p>스탬프투어를 완료한 학생은 10월 14일 이후 학과 사무실에서 협조문을 수령할 수 있습니다.</p></div></article>`}
       </div>
       <div class="modal-divider"></div>
