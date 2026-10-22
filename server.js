@@ -198,28 +198,6 @@ function resolveEventDay(day) {
   return today;
 }
 
-// ═══════════════════════════════════════════════
-//  ★ [설문 전용 연장 기간] 스탬프투어 종료 후 설문조사만 받는 기간
-//    - SURVEY_ONLY_MODE = true 인 동안 스탬프 관련 API는 모두 차단
-//    - 연장 기간(START~END, KST, 양 끝 포함) 동안 1인(기기) 1회만 설문 제출 가능
-//    - END 다음 날부터는 설문 제출도 마감
-// ═══════════════════════════════════════════════
-const SURVEY_ONLY_MODE = true;
-const SURVEY_ONLY_START = "2026-10-12";
-const SURVEY_ONLY_END = "2026-10-18";
-
-function isSurveyClosed(day = kstToday()) {
-  return SURVEY_ONLY_MODE && day > SURVEY_ONLY_END;
-}
-
-// 스탬프 관련 API 차단 미들웨어
-const blockInSurveyOnly = (req, res, next) => {
-  if (SURVEY_ONLY_MODE) {
-    return res.status(403).json({ success: false, error: "GIFT 스탬프투어는 종료되었습니다." });
-  }
-  next();
-};
-
 // 2. 사용자 인증 미들웨어 (브라우저 쿠키의 device_id 확인)
 const authenticate = async (req, res, next) => {
   const { device_id } = req.cookies;
@@ -340,7 +318,7 @@ app.get("/api/tour/prize_status", authenticate, async (req, res) => {
 // ═══════════════════════════════════════════════
 
 // 3. GPS 위치 인증 및 도착 처리 (스푸핑 방지 포함)
-app.post("/api/tour/arrive", blockInSurveyOnly, authenticate, async (req, res) => {
+app.post("/api/tour/arrive", authenticate, async (req, res) => {
   try {
     const { dima_id, lat, lng } = req.body;
     const { id: user_id, role } = req.user;
@@ -404,7 +382,7 @@ app.post("/api/tour/arrive", blockInSurveyOnly, authenticate, async (req, res) =
 });
 
 // 4. 미니게임 완료 처리 API
-app.post("/api/tour/game_clear", blockInSurveyOnly, authenticate, async (req, res) => {
+app.post("/api/tour/game_clear", authenticate, async (req, res) => {
   try {
     const { dima_id } = req.body;
     const { id: user_id } = req.user;
@@ -437,7 +415,7 @@ app.post("/api/tour/game_clear", blockInSurveyOnly, authenticate, async (req, re
 });
 
 // [추가] 3-2. AR 길안내 완료 처리 API
-app.post("/api/tour/navi_clear", blockInSurveyOnly, authenticate, async (req, res) => {
+app.post("/api/tour/navi_clear", authenticate, async (req, res) => {
   try {
     const { dima_id } = req.body;
     const { id: user_id } = req.user;
@@ -478,7 +456,7 @@ if (!fs.existsSync(uploadsDir)) {
 }
 
 // 5. 스탬프 획득 완료 API (서버 사진 저장 제거)
-app.post("/api/tour/photo_upload", blockInSurveyOnly, authenticate, async (req, res) => {
+app.post("/api/tour/photo_upload", authenticate, async (req, res) => {
   try {
     const { dima_id } = req.body; 
     const { id: user_id } = req.user;
@@ -527,27 +505,13 @@ app.get("/api/tour/my_stamps", authenticate, async (req, res) => {
         `,
       [user_id, today],
     );
-    // ★ 설문 전용 기간: 연장 기간 내 1회라도 제출했으면 완료 처리 / 평소: 오늘 제출분만
-    const surveyRes = SURVEY_ONLY_MODE
-      ? await pool.query(
-          `SELECT id FROM dima_surveys WHERE user_id = $1 AND event_day BETWEEN $2 AND $3 AND is_deleted = FALSE`,
-          [user_id, SURVEY_ONLY_START, SURVEY_ONLY_END],
-        )
-      : await pool.query(
-          `SELECT id FROM dima_surveys WHERE user_id = $1 AND event_day = $2`, [user_id, today]
-        );
+    const surveyRes = await pool.query(
+      `SELECT id FROM dima_surveys WHERE user_id = $1 AND event_day = $2`, [user_id, today]
+    );
     const isSurveyDone = surveyRes.rowCount > 0;
 
     // eventDay: 프론트가 오프라인 큐/임시저장 데이터의 날짜를 맞추는 데 사용
-    res.json({
-      success: true,
-      stamps: SURVEY_ONLY_MODE ? [] : stampRes.rows,
-      isSurveyDone,
-      eventDay: today,
-      surveyOnly: SURVEY_ONLY_MODE,
-      surveyClosed: isSurveyClosed(today),
-      surveyEnd: SURVEY_ONLY_END,
-    });
+    res.json({ success: true, stamps: stampRes.rows, isSurveyDone, eventDay: today });
   } catch (err) {
     console.error(err);
     res
@@ -567,22 +531,10 @@ app.post("/api/tour/submit_survey", authenticate, async (req, res) => {
         const { id: user_id } = req.user;
         const eventDay = resolveEventDay(req.body.eventDay); // ★ 참여일 (오늘, 또는 자정 넘겨 전송된 어제분)
 
-        // ★ 설문 전용 기간 마감 (마감일 23:59까지 작성된 건은 자정 넘어 전송돼도 허용)
-        if (isSurveyClosed(eventDay)) {
-            return res.json({ success: false, closed: true, error: "설문조사 기간이 종료되었습니다." });
-        }
-
-        // ★ 설문 전용 기간: 연장 기간 전체에서 1인 1회 / 평소: 참여일당 1회
-        const checkRes = SURVEY_ONLY_MODE
-          ? await pool.query(
-              `SELECT idempotency_key FROM dima_surveys
-               WHERE user_id = $1 AND event_day BETWEEN $2 AND $3 AND is_deleted = FALSE`,
-              [user_id, SURVEY_ONLY_START, SURVEY_ONLY_END]
-            )
-          : await pool.query(
-              "SELECT idempotency_key FROM dima_surveys WHERE user_id = $1 AND event_day = $2",
-              [user_id, eventDay]
-            );
+        const checkRes = await pool.query(
+          "SELECT idempotency_key FROM dima_surveys WHERE user_id = $1 AND event_day = $2",
+          [user_id, eventDay]
+        );
 
         if (checkRes.rowCount > 0) {
             // 오프라인 큐가 재시도한 동일한 요청이면 성공(200) 처리하여 큐를 비우게 함
